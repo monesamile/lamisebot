@@ -72,8 +72,10 @@ def main():
     application.add_handler(CommandHandler('editarimagen', editarimagen))
     application.add_handler(CommandHandler('testMensaje', testMensaje))
 
+    # Iniciar el bot sin conflictos de "getUpdates"
     application.run_polling()
 
 if __name__ == '__main__':
     main()
+
 
