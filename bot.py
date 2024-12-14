@@ -8,7 +8,7 @@ TOKEN = '7130748281:AAHsjLC4CgUPxyf0uBJ1I7InO7Nd6KlXOB4'
 canales = []
 
 # Tu user_id o los user_ids permitidos
-PERMITIDOS = [123456789, 987654321]  # Aquí debes poner tu user_id o los user_ids de las personas permitidas
+PERMITIDOS = [6131021703]  # Aquí debes poner tu user_id o los user_ids de las personas permitidas
 
 # Función para verificar si el usuario tiene permisos
 def verificar_permisos(update: Update) -> bool:
