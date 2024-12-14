@@ -1,8 +1,9 @@
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-from telegram import Bot, InputMediaPhoto
+from telegram.ext import Updater, CommandHandler
+from telegram import Bot
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
 import logging
+import pytz
 
 # Habilitar el registro de logs para depurar
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -63,7 +64,7 @@ def send_spam():
             # Enviar un mensaje con texto e imagen
             bot.send_photo(chat_id=channel_id, photo=open(image_path, 'rb'), caption="¡Este es un spam programado!")
             # Programar eliminación del mensaje después de 24 horas
-            delete_time = datetime.now() + timedelta(hours=24)
+            delete_time = datetime.now(pytz.timezone('Europe/Madrid')) + timedelta(hours=24)
             scheduler.add_job(delete_message, 'date', run_date=delete_time, args=[channel_id])
 
 # Función para eliminar el mensaje
@@ -78,11 +79,11 @@ def subir_anuncio_prueba(update, context):
         # Enviar un mensaje de prueba con "Hola Mundo" y una imagen
         bot.send_photo(chat_id=channel_id, photo=open(image_path, 'rb'), caption="Hola Mundo")
         # Programar la eliminación del mensaje después de 1 minuto
-        delete_time = datetime.now() + timedelta(minutes=1)
+        delete_time = datetime.now(pytz.timezone('Europe/Madrid')) + timedelta(minutes=1)
         scheduler.add_job(delete_message, 'date', run_date=delete_time, args=[channel_id])
 
 # Agregar la tarea programada para enviar el spam cada sábado a las 9:00 AM
-scheduler = BackgroundScheduler()
+scheduler = BackgroundScheduler(timezone=pytz.timezone('Europe/Madrid'))
 scheduler.add_job(send_spam, 'cron', day_of_week='sat', hour=9, minute=0)
 scheduler.start()
 
