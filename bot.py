@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 CHANNEL_IDS = []  # Lista de IDs de canales
 
 # Tu bot token
-TOKEN = '7130748281:AAHsjLC4CgUPxyf0uBJ1I7InO7Nd6KlXOB4'  # Sustituir con tu token
+TOKEN = 'TU_BOT_TOKEN'  # Sustituir con tu token
 
 
 # Comando: /add <canal_id>
@@ -66,5 +66,8 @@ async def main():
 
 
 if __name__ == '__main__':
+    # Para evitar conflictos con el bucle de eventos, usamos esta forma
     import asyncio
-    asyncio.run(main())
+    loop = asyncio.get_event_loop()
+    loop.create_task(main())  # Ejecutamos la tarea principal del bot
+    loop.run_forever()  # Mantiene el bucle de eventos en ejecución
