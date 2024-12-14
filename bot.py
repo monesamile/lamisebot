@@ -1,8 +1,6 @@
 import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-import asyncio
-import os
 
 # Configuración de logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -56,35 +54,6 @@ async def delete_canal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Por favor, proporciona un ID de canal válido. Uso: /delete <canal_id>")
 
 
-# Comando: /SubirAnuncioPrueba1min
-async def subir_anuncio_prueba(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if CHANNEL_IDS:
-        if not os.path.exists("test_image.jpg"):
-            await update.message.reply_text("La imagen de prueba 'test_image.jpg' no existe. Asegúrate de que esté en el mismo directorio que este script.")
-            return
-
-        bot = context.bot
-        for canal_id in CHANNEL_IDS:
-            try:
-                # Enviar mensaje de texto
-                mensaje = await bot.send_message(chat_id=canal_id, text="¡Hola Mundo! Este mensaje será borrado en 1 minuto.")
-
-                # Enviar imagen de prueba
-                with open("test_image.jpg", "rb") as image_file:
-                    imagen = await bot.send_photo(chat_id=canal_id, photo=image_file, caption="Esta es una imagen de prueba.")
-
-                # Esperar 1 minuto y borrar mensaje e imagen
-                await asyncio.sleep(60)
-                await bot.delete_message(chat_id=canal_id, message_id=mensaje.message_id)
-                await bot.delete_message(chat_id=canal_id, message_id=imagen.message_id)
-
-            except Exception as e:
-                logger.error(f"Error con el canal {canal_id}: {e}")
-                await update.message.reply_text(f"Error con el canal {canal_id}: {e}")
-    else:
-        await update.message.reply_text("No hay canales configurados para enviar el anuncio.")
-
-
 # Función principal
 async def main():
     # Inicializar la aplicación
@@ -94,7 +63,6 @@ async def main():
     application.add_handler(CommandHandler('add', add_canal))
     application.add_handler(CommandHandler('list', list_canales))
     application.add_handler(CommandHandler('delete', delete_canal))
-    application.add_handler(CommandHandler('SubirAnuncioPrueba1min', subir_anuncio_prueba))
 
     # Ejecutar el bot
     await application.run_polling()
@@ -111,4 +79,3 @@ if __name__ == '__main__':
             asyncio.run(main())
         else:
             raise e
-
