@@ -58,7 +58,7 @@ async def delete_channel(update, context):
         await update.message.reply_text(f"Hubo un error: {str(e)}")
 
 # Función para enviar el spam
-async def send_spam():
+async def send_spam(bot):
     for channel_id, info in channels.items():
         if info['status'] == 'active':
             # Enviar un mensaje con texto e imagen
@@ -84,7 +84,7 @@ async def subir_anuncio_prueba(update, context):
 
 # Agregar la tarea programada para enviar el spam cada sábado a las 9:00 AM
 scheduler = BackgroundScheduler()
-scheduler.add_job(send_spam, 'cron', day_of_week='sat', hour=9, minute=0)
+scheduler.add_job(send_spam, 'cron', day_of_week='sat', hour=9, minute=0, args=[None])  # Argumento None por ahora
 scheduler.start()
 
 # Función principal para iniciar el bot
@@ -105,9 +105,6 @@ async def main():
     await application.run_polling()
 
 if __name__ == '__main__':
-    # Usar el bucle de eventos ya en ejecución, sin crear uno nuevo
-    asyncio.get_event_loop().create_task(main())  # Crea una tarea de ejecución
-    asyncio.get_event_loop().run_forever()  # Mantén el bucle de eventos en ejecución
-
-
+    # Ejecutar directamente sin necesidad de manejar manualmente el bucle de eventos
+    asyncio.run(main())
 
