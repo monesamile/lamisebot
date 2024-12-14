@@ -1,141 +1,130 @@
-
-import logging
-from telegram import Update, InputMediaPhoto
+from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
-from telegram.ext import Updater
 import os
 
-# Definición de tus IDs permitidos
-ALLOWED_IDS = [6131021703, 1001520614779]  # Tu ID y el ID adicional
+# Configuración básica
+TOKEN = '7130748281:AAHsjLC4CgUPxyf0uBJ1I7InO7Nd6KlXOB4'
+ALLOWED_IDS = [6131021703, 1001520614779]  # Lista de IDs permitidos
 
-# Configuración del logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Carpeta donde se guardarán las imágenes subidas
+IMAGE_DIR = "images"
+if not os.path.exists(IMAGE_DIR):
+    os.makedirs(IMAGE_DIR)
 
-# Guardar la imagen subida
-image_path = None
+# Lista de canales donde se enviarán los mensajes
+canales = []
 
-# Función para verificar si el usuario tiene permisos
-def is_allowed(update: Update):
+# Función para verificar si un usuario tiene permiso
+def tiene_permiso(update: Update):
     return update.message.from_user.id in ALLOWED_IDS
 
-# Comando para comenzar
+# Comando /start - Muestra los comandos disponibles
 async def start(update: Update, context: CallbackContext):
-    if is_allowed(update):
-        await update.message.reply_text("¡Hola! ¿En qué puedo ayudarte hoy?")
+    if tiene_permiso(update):
+        await update.message.reply_text(
+            "¡Hola, soy tu bot! Usa los siguientes comandos:\n"
+            "/start - Muestra los comandos disponibles\n"
+            "/addcanal - Añadir un canal\n"
+            "/listacanales - Ver canales añadidos\n"
+            "/editarimagen - Subir una imagen\n"
+            "/testMensaje - Enviar un mensaje a los canales"
+        )
     else:
-        await update.message.reply_text("Lo siento, no tienes permisos para usar este bot.")
+        await update.message.reply_text("No tienes permisos para usar este bot.")
 
-# Comando para agregar un canal
-async def add_channel(update: Update, context: CallbackContext):
-    if is_allowed(update):
-        try:
-            channel = context.args[0]
-            # Guardar el canal en algún tipo de almacenamiento (base de datos, archivo, etc.)
-            # Ejemplo de añadir a un archivo de texto:
-            with open("channels.txt", "a") as file:
-                file.write(f"{channel}\n")
-            await update.message.reply_text(f"Canal {channel} agregado exitosamente.")
-        except IndexError:
-            await update.message.reply_text("Por favor, proporciona el nombre del canal.")
-    else:
-        await update.message.reply_text("No tienes permiso para agregar canales.")
-
-# Comando para eliminar un canal
-async def remove_channel(update: Update, context: CallbackContext):
-    if is_allowed(update):
-        try:
-            channel = context.args[0]
-            # Eliminar el canal de donde esté guardado
-            with open("channels.txt", "r") as file:
-                channels = file.readlines()
-            with open("channels.txt", "w") as file:
-                for line in channels:
-                    if line.strip() != channel:
-                        file.write(line)
-            await update.message.reply_text(f"Canal {channel} eliminado.")
-        except IndexError:
-            await update.message.reply_text("Por favor, proporciona el nombre del canal.")
-    else:
-        await update.message.reply_text("No tienes permiso para eliminar canales.")
-
-# Comando para enviar mensaje a los canales con imagen
-async def send_message(update: Update, context: CallbackContext):
-    if is_allowed(update):
-        try:
-            text = ' '.join(context.args)
-            if image_path:
-                # Enviar mensaje con imagen a los canales
-                with open("channels.txt", "r") as file:
-                    channels = file.readlines()
-                for channel in channels:
-                    channel = channel.strip()
-                    try:
-                        # Enviar el mensaje a cada canal
-                        await context.bot.send_photo(chat_id=channel, photo=open(image_path, 'rb'), caption=text)
-                        await update.message.reply_text(f"Mensaje enviado al canal {channel}.")
-                    except Exception as e:
-                        await update.message.reply_text(f"No se pudo enviar al canal {channel}: {str(e)}")
-            else:
-                await update.message.reply_text("No se ha configurado ninguna imagen para enviar.")
-        except IndexError:
-            await update.message.reply_text("Por favor, proporciona el mensaje que deseas enviar.")
-    else:
-        await update.message.reply_text("No tienes permiso para enviar mensajes a los canales.")
-
-# Comando para editar imagen
-async def edit_image(update: Update, context: CallbackContext):
-    if is_allowed(update):
-        if update.message.photo:
-            # Guardar la foto recibida
-            global image_path
-            file = await update.message.photo[-1].get_file()
-            image_path = f"images/{file.file_id}.jpg"
-            await file.download(image_path)
-            await update.message.reply_text("Imagen guardada exitosamente.")
+# Comando /addcanal - Añadir un canal
+async def add_canal(update: Update, context: CallbackContext):
+    if tiene_permiso(update):
+        if context.args:
+            canal_id = context.args[0]
+            canales.append(canal_id)
+            await update.message.reply_text(f"Canal {canal_id} añadido correctamente.")
         else:
-            await update.message.reply_text("Por favor, sube una imagen para guardarla.")
+            await update.message.reply_text("Por favor, proporciona un ID de canal. Ejemplo: /addcanal @miCanal")
     else:
-        await update.message.reply_text("No tienes permiso para editar la imagen.")
+        await update.message.reply_text("No tienes permisos para usar este comando.")
 
-# Comando de ayuda
+# Comando /listacanales - Mostrar todos los canales añadidos
+async def listar_canales(update: Update, context: CallbackContext):
+    if tiene_permiso(update):
+        if canales:
+            canales_str = "\n".join(canales)
+            await update.message.reply_text(f"Canales añadidos:\n{canales_str}")
+        else:
+            await update.message.reply_text("No hay canales añadidos.")
+    else:
+        await update.message.reply_text("No tienes permisos para usar este comando.")
+
+# Comando /editarimagen - Subir una imagen
+async def editar_imagen(update: Update, context: CallbackContext):
+    if tiene_permiso(update):
+        if update.message.photo:
+            photo = update.message.photo[-1]
+            file = await photo.get_file()
+            file_path = os.path.join(IMAGE_DIR, f"imagen_{update.message.message_id}.jpg")
+            await file.download_to_drive(file_path)
+            context.user_data['imagen_guardada'] = file_path
+            await update.message.reply_text("Imagen guardada correctamente.")
+        else:
+            await update.message.reply_text("Por favor, sube una imagen para guardar.")
+    else:
+        await update.message.reply_text("No tienes permisos para usar este comando.")
+
+# Comando /testMensaje - Enviar mensaje e imagen a los canales
+async def test_mensaje(update: Update, context: CallbackContext):
+    if tiene_permiso(update):
+        if 'imagen_guardada' in context.user_data:
+            image_path = context.user_data['imagen_guardada']
+            with open(image_path, 'rb') as image_file:
+                for canal_id in canales:
+                    try:
+                        await context.bot.send_photo(chat_id=canal_id, photo=image_file, caption="Holis amores")
+                    except Exception as e:
+                        await update.message.reply_text(f"No se pudo enviar el mensaje al canal {canal_id}: {e}")
+                await update.message.reply_text("Mensaje e imagen enviados a los canales.")
+        else:
+            await update.message.reply_text("No se ha guardado ninguna imagen. Usa /editarimagen.")
+    else:
+        await update.message.reply_text("No tienes permisos para usar este comando.")
+
+# Función para manejar el comando /help (mostrar ayuda)
 async def help_command(update: Update, context: CallbackContext):
-    if is_allowed(update):
-        help_text = """
-        Aquí tienes los comandos disponibles:
-        /start - Inicia el bot.
-        /add_channel [canal] - Agrega un canal.
-        /remove_channel [canal] - Elimina un canal.
-        /send_message [mensaje] - Envia un mensaje a los canales.
-        /edit_image - Edita y guarda una imagen para enviarla.
-        """
-        await update.message.reply_text(help_text)
+    if tiene_permiso(update):
+        await update.message.reply_text("¡Aquí tienes la ayuda! Usa los comandos que te he mostrado anteriormente.")
     else:
-        await update.message.reply_text("No tienes permiso para acceder a la ayuda.")
+        await update.message.reply_text("No tienes permisos para usar este comando.")
 
-# Manejo de errores
-async def error(update: Update, context: CallbackContext):
-    logger.warning(f"Update {update} caused error {context.error}")
+# Comando /deletecanal - Eliminar un canal de la lista
+async def delete_canal(update: Update, context: CallbackContext):
+    if tiene_permiso(update):
+        if context.args:
+            canal_id = context.args[0]
+            if canal_id in canales:
+                canales.remove(canal_id)
+                await update.message.reply_text(f"Canal {canal_id} eliminado.")
+            else:
+                await update.message.reply_text(f"Canal {canal_id} no encontrado.")
+        else:
+            await update.message.reply_text("Por favor, proporciona un ID de canal. Ejemplo: /deletecanal @miCanal")
+    else:
+        await update.message.reply_text("No tienes permisos para usar este comando.")
 
-# Función principal para arrancar el bot
+# Función principal que arranca el bot
 def main():
-    """Start the bot."""
-    application = Application.builder().token('YOUR_TOKEN').build()
+    application = Application.builder().token(TOKEN).build()
 
-    # Registrar comandos
+    # Añadir los handlers de los comandos
     application.add_handler(CommandHandler('start', start))
-    application.add_handler(CommandHandler('add_channel', add_channel))
-    application.add_handler(CommandHandler('remove_channel', remove_channel))
-    application.add_handler(CommandHandler('send_message', send_message))
-    application.add_handler(CommandHandler('edit_image', edit_image))
+    application.add_handler(CommandHandler('addcanal', add_canal))
+    application.add_handler(CommandHandler('listacanales', listar_canales))
+    application.add_handler(CommandHandler('editarimagen', editar_imagen))
+    application.add_handler(CommandHandler('testMensaje', test_mensaje))
     application.add_handler(CommandHandler('help', help_command))
+    application.add_handler(CommandHandler('deletecanal', delete_canal))
 
-    # Registrar el manejo de errores
-    application.add_error_handler(error)
-
-    # Ejecutar el bot
+    # Arrancar el bot con polling
     application.run_polling()
 
 if __name__ == '__main__':
     main()
+
