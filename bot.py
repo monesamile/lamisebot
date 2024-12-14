@@ -1,5 +1,5 @@
 from telegram.ext import Application, CommandHandler
-from telegram import Bot, InputMediaPhoto
+from telegram import Bot
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
 import logging
@@ -104,7 +104,6 @@ async def main():
     # Iniciar el bot
     await application.run_polling()
 
+# Ejecutar el bot
 if __name__ == '__main__':
-    # Ejecutar directamente sin necesidad de manejar manualmente el bucle de eventos
-    asyncio.run(main())
-
+    asyncio.run(main())  # Este código debería funcionar ahora sin conflictos
