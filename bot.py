@@ -57,18 +57,19 @@ async def listar_canales(update: Update, context: CallbackContext):
 
 # Comando /editarimagen - Subir una imagen
 async def editar_imagen(update: Update, context: CallbackContext):
-    if tiene_permiso(update):
-        if update.message.photo:
-            photo = update.message.photo[-1]
-            file = await photo.get_file()
-            file_path = os.path.join(IMAGE_DIR, f"imagen_{update.message.message_id}.jpg")
-            await file.download_to_drive(file_path)
-            context.user_data['imagen_guardada'] = file_path
-            await update.message.reply_text("Imagen guardada correctamente.")
+    if tiene_permiso(update):  # Verificar si el usuario tiene permisos
+        if update.message.photo:  # Verificar si el mensaje contiene una foto
+            photo = update.message.photo[-1]  # Obtener la imagen más grande (última en la lista)
+            file = await photo.get_file()  # Obtener el archivo
+            file_path = os.path.join(IMAGE_DIR, f"imagen_{update.message.message_id}.jpg")  # Establecer la ruta para guardar la imagen
+            await file.download_to_drive(file_path)  # Descargar la imagen al servidor
+            context.user_data['imagen_guardada'] = file_path  # Guardar la ruta en los datos del usuario
+            await update.message.reply_text("Imagen guardada correctamente.")  # Confirmación
         else:
-            await update.message.reply_text("Por favor, sube una imagen para guardar.")
+            await update.message.reply_text("Por favor, sube una imagen para guardar.")  # Mensaje si no hay imagen
     else:
-        await update.message.reply_text("No tienes permisos para usar este comando.")
+        await update.message.reply_text("No tienes permisos para usar este comando.")  # Mensaje si el usuario no tiene permisos
+
 
 # Comando /testMensaje - Enviar mensaje e imagen a los canales
 async def test_mensaje(update: Update, context: CallbackContext):
