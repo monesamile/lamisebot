@@ -1,6 +1,6 @@
-import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
+import logging
 
 # Configuración de logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 CHANNEL_IDS = []  # Lista de IDs de canales
 
 # Tu bot token
-TOKEN = '7130748281:AAHsjLC4CgUPxyf0uBJ1I7InO7Nd6KlXOB4'  # Sustituir con tu token de Telegram
+TOKEN = '7130748281:AAHsjLC4CgUPxyf0uBJ1I7InO7Nd6KlXOB4'  # Sustituir con tu token
 
 
 # Comando: /add <canal_id>
@@ -51,21 +51,20 @@ async def delete_canal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Por favor, proporciona un ID de canal válido. Uso: /delete <canal_id>")
 
 
-# Función principal
-def main():
+# Función principal para iniciar el bot
+async def main():
     # Inicializar la aplicación
     application = Application.builder().token(TOKEN).build()
 
-    # Agregar comandos al bot
+    # Comandos del bot
     application.add_handler(CommandHandler('add', add_canal))
     application.add_handler(CommandHandler('list', list_canales))
     application.add_handler(CommandHandler('delete', delete_canal))
 
-    # Ejecutar el bot sin necesidad de asyncio.run()
-    application.run_polling()
+    # Iniciar el polling
+    await application.run_polling()
 
 
-# Ejecutar la aplicación
 if __name__ == '__main__':
-    main()
-
+    import asyncio
+    asyncio.run(main())
