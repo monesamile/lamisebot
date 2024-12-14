@@ -3,6 +3,7 @@ from telegram import Bot, InputMediaPhoto
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
 import logging
+import asyncio
 
 # Habilitar el registro de logs para depurar
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -100,13 +101,13 @@ async def main():
     application.add_handler(CommandHandler("delete", delete_channel))  # Eliminar canal
     application.add_handler(CommandHandler("SubirAnuncioPrueba1min", subir_anuncio_prueba))  # Enviar anuncio de prueba
 
-    # Iniciar el bot
+    # Iniciar el bot sin llamar a asyncio.run()
     await application.run_polling()
 
-# Llamar a la función principal sin asyncio.run()
 if __name__ == '__main__':
-    import asyncio
-    asyncio.ensure_future(main())  # Usar ensure_future en lugar de asyncio.run
-    asyncio.get_event_loop().run_forever()  # Asegurarse de que el bucle de eventos siga ejecutándose
+    # Usar el bucle de eventos ya en ejecución, sin crear uno nuevo
+    asyncio.get_event_loop().create_task(main())  # Crea una tarea de ejecución
+    asyncio.get_event_loop().run_forever()  # Mantén el bucle de eventos en ejecución
+
 
 
