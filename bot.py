@@ -1,85 +1,87 @@
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import Updater, CommandHandler
 
-# Reemplaza 'TOKEN' con el token real de tu bot
+# Reemplaza con tu token de bot
 TOKEN = '7130748281:AAHsjLC4CgUPxyf0uBJ1I7InO7Nd6KlXOB4'
+# ID del usuario autorizado
+PERMITIDOS = [6131021703]
 
-# Variable global para almacenar los IDs de los canales añadidos
-canales = []
+# Almacenamos los canales en un diccionario con ID como clave y nombre como valor
+canales = {}
 
-# Tu user_id o los user_ids permitidos
-PERMITIDOS = [6131021703]  # Aquí debes poner tu user_id o los user_ids de las personas permitidas
+def check_user(update):
+    """Verifica si el usuario está permitido."""
+    return update.message.from_user.id in PERMITIDOS
 
-# Función para verificar si el usuario tiene permisos
-def verificar_permisos(update: Update) -> bool:
-    user_id = update.message.from_user.id
-    return user_id in PERMITIDOS
-
-# Función para el comando /start
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if verificar_permisos(update):
-        comandos = (
-            "/start - Muestra este mensaje de bienvenida\n"
-            "/addcanal <ID> - Añade un canal con su ID\n"
-            "/listacanales - Muestra los canales añadidos\n"
-            "/testMensaje - Envía un mensaje a todos los canales añadidos"
-        )
-        await update.message.reply_text(f"¡Hola, soy tu bot! Aquí están los comandos disponibles:\n\n{comandos}")
+def start(update, context):
+    if check_user(update):
+        update.message.reply_text("¡Hola, soy tu bot! Usa /help para ver los comandos.")
     else:
-        await update.message.reply_text("No tienes permiso para usar este bot.")
+        update.message.reply_text("No tienes permiso para usar este bot.")
 
-# Función para agregar canales por ID
-async def add_canal_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if verificar_permisos(update):
-        if len(context.args) == 1:
-            canal_id = context.args[0]  # El primer argumento es el ID del canal
-            canales.append(canal_id)  # Añadir a la lista de canales
-            await update.message.reply_text(f"Canal con ID {canal_id} añadido exitosamente.")
-        else:
-            await update.message.reply_text("Por favor, proporciona el ID del canal después de /addcanal.")
+def add_canal(update, context):
+    """Añadir un canal con ID y nombre."""
+    if check_user(update):
+        try:
+            canal_id = context.args[0]
+            canal_nombre = ' '.join(context.args[1:])
+            # Guardamos el canal
+            canales[canal_id] = canal_nombre
+            update.message.reply_text(f"Canal '{canal_nombre}' con ID {canal_id} agregado.")
+        except IndexError:
+            update.message.reply_text("Por favor, usa el comando de la siguiente forma: /addcanal <ID> <Nombre del Canal>")
     else:
-        await update.message.reply_text("No tienes permiso para ejecutar este comando.")
+        update.message.reply_text("No tienes permiso para usar este comando.")
 
-# Función para mostrar los canales añadidos
-async def mostrar_canales(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if verificar_permisos(update):
+def list_canales(update, context):
+    """Listar todos los canales almacenados."""
+    if check_user(update):
         if canales:
-            canales_lista = "\n".join(canales)
-            await update.message.reply_text(f"Canales añadidos:\n{canales_lista}")
+            canal_list = "\n".join([f"ID: {canal_id}, Nombre: {nombre}" for canal_id, nombre in canales.items()])
+            update.message.reply_text(f"Canales añadidos:\n{canal_list}")
         else:
-            await update.message.reply_text("No hay canales añadidos aún.")
+            update.message.reply_text("No hay canales añadidos aún.")
     else:
-        await update.message.reply_text("No tienes permiso para ejecutar este comando.")
+        update.message.reply_text("No tienes permiso para usar este comando.")
 
-# Función para enviar el mensaje "¡Hola Mundo!" a todos los canales añadidos
-async def test_mensaje(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if verificar_permisos(update):
+def remove_canal(update, context):
+    """Eliminar un canal por ID."""
+    if check_user(update):
+        try:
+            canal_id = context.args[0]
+            if canal_id in canales:
+                canal_nombre = canales.pop(canal_id)
+                update.message.reply_text(f"Canal '{canal_nombre}' con ID {canal_id} eliminado.")
+            else:
+                update.message.reply_text(f"No se encontró el canal con ID {canal_id}.")
+        except IndexError:
+            update.message.reply_text("Por favor, usa el comando de la siguiente forma: /removecanal <ID>")
+    else:
+        update.message.reply_text("No tienes permiso para usar este comando.")
+
+def test_mensaje(update, context):
+    """Enviar mensaje de prueba a todos los canales."""
+    if check_user(update):
         if canales:
             for canal_id in canales:
-                try:
-                    # Enviar el mensaje al canal
-                    await context.bot.send_message(chat_id=canal_id, text="¡Hola Mundo!")
-                except Exception as e:
-                    # Si ocurre un error al enviar el mensaje, lo imprimimos
-                    print(f"Error al enviar mensaje al canal {canal_id}: {e}")
-            await update.message.reply_text(f"Mensaje enviado a {len(canales)} canal(es).")
+                context.bot.send_message(chat_id=canal_id, text="¡Hola Mundo!")
+            update.message.reply_text(f"Mensaje enviado a {len(canales)} canal(es).")
         else:
-            await update.message.reply_text("No hay canales añadidos para enviar el mensaje.")
+            update.message.reply_text("No hay canales añadidos.")
     else:
-        await update.message.reply_text("No tienes permiso para ejecutar este comando.")
+        update.message.reply_text("No tienes permiso para usar este comando.")
 
 def main():
-    # Crear la aplicación
-    application = Application.builder().token(TOKEN).build()
+    updater = Updater(TOKEN)
+    dispatcher = updater.dispatcher
 
-    # Comandos
-    application.add_handler(CommandHandler('start', start))
-    application.add_handler(CommandHandler('addcanal', add_canal_id))
-    application.add_handler(CommandHandler('listacanales', mostrar_canales))  # Cambié el nombre aquí
-    application.add_handler(CommandHandler('testMensaje', test_mensaje))  # Comando para enviar el mensaje
+    dispatcher.add_handler(CommandHandler('start', start))
+    dispatcher.add_handler(CommandHandler('addcanal', add_canal))
+    dispatcher.add_handler(CommandHandler('listacanales', list_canales))
+    dispatcher.add_handler(CommandHandler('removecanal', remove_canal))
+    dispatcher.add_handler(CommandHandler('testmensaje', test_mensaje))
 
-    # Iniciar el polling
-    application.run_polling()
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == '__main__':
     main()
