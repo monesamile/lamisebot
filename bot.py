@@ -1,8 +1,8 @@
 import logging
-import asyncio
-from telegram import Bot, Update, InputFile
+from telegram import Update, InputFile
 from telegram.ext import Application, CommandHandler, ContextTypes
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import asyncio
 
 # Configuración de logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -93,6 +93,9 @@ async def main():
     await application.run_polling()
 
 
+# Ejecutar el bucle en entornos activos
 if __name__ == '__main__':
-    asyncio.run(main())
+    # Usar asyncio.get_event_loop() para entornos con un bucle activo
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
 
