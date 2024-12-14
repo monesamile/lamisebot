@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 CHANNEL_IDS = []  # Lista de IDs de canales
 
 # Tu bot token
-TOKEN = 'TU_BOT_TOKEN'  # Sustituir con tu token de Telegram
+TOKEN = '7130748281:AAHsjLC4CgUPxyf0uBJ1I7InO7Nd6KlXOB4'  # Sustituir con tu token de Telegram
 
 
 # Comando: /add <canal_id>
