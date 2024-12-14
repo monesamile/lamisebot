@@ -1,114 +1,60 @@
-from telegram.ext import Application, CommandHandler
-from telegram import Bot
-from apscheduler.schedulers.background import BackgroundScheduler
-from datetime import datetime, timedelta
 import logging
 import asyncio
+from telegram import Bot, Update
+from telegram.ext import Application, CommandHandler, ContextTypes
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 
-# Habilitar el registro de logs para depurar
+# Configuración de logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Diccionario para almacenar los canales agregados
-channels = {}
+# Variables globales para almacenar el canal ID
+CHANNEL_ID = None  # Inicialmente sin canal asignado
 
-# Configuración de la imagen para el anuncio (puedes cambiarla)
-image_path = 'path_a_tu_imagen.jpg'  # Coloca la ruta a la imagen que quieres enviar
+# Tu bot token
+TOKEN = 'YOUR_BOT_TOKEN'  # Sustituir con tu token
 
-# Función para agregar un canal
-async def add_channel(update, context):
-    try:
-        # Obtener el ID del canal desde el argumento
-        channel_id = context.args[0]  # El primer argumento del comando /add
-        if channel_id.isdigit():  # Verificar que el ID sea un número
-            channel_id = int(channel_id)
-            # Almacenar el canal en un diccionario con su ID
-            channels[channel_id] = {'status': 'active'}
-            await update.message.reply_text(f"Canal {channel_id} añadido correctamente.")
-        else:
-            await update.message.reply_text("Por favor, proporciona un ID de canal válido.")
-    except IndexError:
-        await update.message.reply_text("Por favor, proporciona el ID del canal después del comando /add.")
-    except Exception as e:
-        await update.message.reply_text(f"Hubo un error: {str(e)}")
-
-# Función para listar los canales agregados
-async def list_channels(update, context):
-    if channels:
-        response = "Canales añadidos:\n"
-        for channel_id in channels:
-            response += f"- {channel_id}\n"
-        await update.message.reply_text(response)
+# Función para agregar el canal con su ID
+async def add_canal_con_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global CHANNEL_ID
+    if len(context.args) == 1:
+        CHANNEL_ID = context.args[0]  # Guardamos el ID del canal proporcionado
+        await update.message.reply_text(f"Canal agregado con ID: {CHANNEL_ID}")
     else:
-        await update.message.reply_text("No hay canales añadidos aún.")
+        await update.message.reply_text("Por favor, proporciona un ID de canal válido.")
 
-# Función para eliminar un canal
-async def delete_channel(update, context):
-    try:
-        channel_id = int(context.args[0])  # El ID del canal
-        if channel_id in channels:
-            del channels[channel_id]
-            await update.message.reply_text(f"Canal {channel_id} eliminado correctamente.")
-        else:
-            await update.message.reply_text("Canal no encontrado.")
-    except IndexError:
-        await update.message.reply_text("Por favor, proporciona el ID del canal después del comando /delete.")
-    except Exception as e:
-        await update.message.reply_text(f"Hubo un error: {str(e)}")
+# Función para enviar mensaje de prueba cada minuto
+async def enviar_mensaje_prueba(bot: Bot):
+    if CHANNEL_ID:
+        try:
+            await bot.send_message(CHANNEL_ID, "Este es un mensaje de prueba.")
+            logger.info("Mensaje enviado con éxito.")
+        except Exception as e:
+            logger.error(f"Error al enviar el mensaje: {e}")
+    else:
+        logger.warning("No se ha configurado un canal para enviar mensajes.")
 
-# Función para enviar el spam
-async def send_spam(bot):
-    for channel_id, info in channels.items():
-        if info['status'] == 'active':
-            # Enviar un mensaje con texto e imagen
-            await bot.send_photo(chat_id=channel_id, photo=open(image_path, 'rb'), caption="¡Este es un spam programado!")
-            # Programar eliminación del mensaje después de 24 horas
-            delete_time = datetime.now() + timedelta(hours=24)
-            scheduler.add_job(delete_message, 'date', run_date=delete_time, args=[channel_id])
-
-# Función para eliminar el mensaje
-async def delete_message(channel_id):
-    # Aquí debes implementar la lógica para eliminar el mensaje
-    # Necesitarías almacenar el message_id que has enviado y luego eliminarlo
-    print(f"Mensaje en el canal {channel_id} eliminado.")
-
-# Función para el anuncio de prueba
-async def subir_anuncio_prueba(update, context):
-    for channel_id in channels:
-        # Enviar un mensaje de prueba con "Hola Mundo" y una imagen
-        await bot.send_photo(chat_id=channel_id, photo=open(image_path, 'rb'), caption="Hola Mundo")
-        # Programar la eliminación del mensaje después de 1 minuto
-        delete_time = datetime.now() + timedelta(minutes=1)
-        scheduler.add_job(delete_message, 'date', run_date=delete_time, args=[channel_id])
-
-# Agregar la tarea programada para enviar el spam cada sábado a las 9:00 AM
-scheduler = BackgroundScheduler()
-scheduler.add_job(send_spam, 'cron', day_of_week='sat', hour=9, minute=0, args=[None])  # Argumento None por ahora
-scheduler.start()
-
-# Función principal para iniciar el bot
+# Función para iniciar el bot y configurar el scheduler
 async def main():
-    global bot
-    TOKEN = '7130748281:AAHsjLC4CgUPxyf0uBJ1I7InO7Nd6KlXOB4'  # Coloca tu token real de Telegram
-
+    # Inicializamos el bot y el scheduler
     application = Application.builder().token(TOKEN).build()
-    bot = Bot(TOKEN)
+    bot = Bot(token=TOKEN)
+    scheduler = AsyncIOScheduler()
 
-    # Comandos
-    application.add_handler(CommandHandler("add", add_channel))  # Añadir canal
-    application.add_handler(CommandHandler("list", list_channels))  # Listar canales
-    application.add_handler(CommandHandler("delete", delete_channel))  # Eliminar canal
-    application.add_handler(CommandHandler("SubirAnuncioPrueba1min", subir_anuncio_prueba))  # Enviar anuncio de prueba
+    # Comando para agregar el canal
+    add_canal_handler = CommandHandler('addCanalConID', add_canal_con_id)
+    application.add_handler(add_canal_handler)
 
-    # Iniciar el bot sin usar asyncio.run()
-    await application.run_polling()
+    # Agregar tarea al scheduler para enviar el mensaje cada minuto
+    scheduler.add_job(enviar_mensaje_prueba, IntervalTrigger(minutes=1), args=[bot])
 
-# Ejecutar el bot
+    # Iniciar el scheduler
+    scheduler.start()
+
+    # Comando para iniciar el bot
+    await application.start_polling()
+
 if __name__ == '__main__':
-    try:
-        # Inicializar el bot directamente sin asyncio.run()
-        asyncio.get_event_loop().run_until_complete(main())
-    except RuntimeError as e:
-        print(f"Error: {e}")
-
+    asyncio.run(main())
