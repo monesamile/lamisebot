@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 CHANNEL_IDS = []  # Lista de IDs de canales
 
 # Tu bot token
-TOKEN = 'YOUR_BOT_TOKEN'  # Sustituir con tu token
+TOKEN = '7130748281:AAHsjLC4CgUPxyf0uBJ1I7InO7Nd6KlXOB4'  # Sustituir con tu token
 
 
 # Comando: /add <canal_id>
