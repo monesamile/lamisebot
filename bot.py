@@ -12,7 +12,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     comandos = (
         "/start - Muestra este mensaje de bienvenida\n"
         "/addcanal <ID> - Añade un canal con su ID\n"
-        "/listacanales - Muestra los canales añadidos"
+        "/listacanales - Muestra los canales añadidos\n"
+        "/testMensaje - Envía un mensaje a todos los canales añadidos"
     )
     await update.message.reply_text(f"¡Hola, soy tu bot! Aquí están los comandos disponibles:\n\n{comandos}")
 
@@ -33,6 +34,17 @@ async def mostrar_canales(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("No hay canales añadidos aún.")
 
+# Función para enviar el mensaje "¡Hola Mundo!" a todos los canales añadidos
+async def test_mensaje(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if canales:
+        for canal_id in canales:
+            try:
+                # Enviar el mensaje al canal
+                await context.bot.send_message(chat_id=canal_id, text="¡Hola Mundo!")
+        await update.message.reply_text(f"Mensaje enviado a {len(canales)} canal(es).")
+    else:
+        await update.message.reply_text("No hay canales añadidos para enviar el mensaje.")
+
 def main():
     # Crear la aplicación
     application = Application.builder().token(TOKEN).build()
@@ -41,6 +53,7 @@ def main():
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('addcanal', add_canal_id))
     application.add_handler(CommandHandler('listacanales', mostrar_canales))  # Cambié el nombre aquí
+    application.add_handler(CommandHandler('testMensaje', test_mensaje))  # Comando para enviar el mensaje
 
     # Iniciar el polling
     application.run_polling()
