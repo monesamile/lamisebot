@@ -101,9 +101,14 @@ async def main():
     application.add_handler(CommandHandler("delete", delete_channel))  # Eliminar canal
     application.add_handler(CommandHandler("SubirAnuncioPrueba1min", subir_anuncio_prueba))  # Enviar anuncio de prueba
 
-    # Iniciar el bot
+    # Iniciar el bot sin usar asyncio.run()
     await application.run_polling()
 
 # Ejecutar el bot
 if __name__ == '__main__':
-    asyncio.run(main())  # Este código debería funcionar ahora sin conflictos
+    try:
+        # Inicializar el bot directamente sin asyncio.run()
+        asyncio.get_event_loop().run_until_complete(main())
+    except RuntimeError as e:
+        print(f"Error: {e}")
+
