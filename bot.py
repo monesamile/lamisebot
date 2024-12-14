@@ -9,7 +9,12 @@ canales = []
 
 # Función para el comando /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("¡Hola, soy tu bot! Usa /addCanalID <ID> para agregar canales.")
+    comandos = (
+        "/start - Muestra este mensaje de bienvenida\n"
+        "/addcanal <ID> - Añade un canal con su ID\n"
+        "/listacanales - Muestra los canales añadidos"
+    )
+    await update.message.reply_text(f"¡Hola, soy tu bot! Aquí están los comandos disponibles:\n\n{comandos}")
 
 # Función para agregar canales por ID
 async def add_canal_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -18,7 +23,7 @@ async def add_canal_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
         canales.append(canal_id)  # Añadir a la lista de canales
         await update.message.reply_text(f"Canal con ID {canal_id} añadido exitosamente.")
     else:
-        await update.message.reply_text("Por favor, proporciona el ID del canal después de /addCanalID.")
+        await update.message.reply_text("Por favor, proporciona el ID del canal después de /addcanal.")
 
 # Función para mostrar los canales añadidos
 async def mostrar_canales(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -34,8 +39,8 @@ def main():
 
     # Comandos
     application.add_handler(CommandHandler('start', start))
-    application.add_handler(CommandHandler('addCanalID', add_canal_id))
-    application.add_handler(CommandHandler('mostrar_canales', mostrar_canales))  # Cambié el nombre aquí
+    application.add_handler(CommandHandler('addcanal', add_canal_id))
+    application.add_handler(CommandHandler('listacanales', mostrar_canales))  # Cambié el nombre aquí
 
     # Iniciar el polling
     application.run_polling()
