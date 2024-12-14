@@ -103,7 +103,10 @@ async def main():
     # Iniciar el bot
     await application.run_polling()
 
+# Llamar a la función principal sin asyncio.run()
 if __name__ == '__main__':
     import asyncio
-    asyncio.run(main())
+    asyncio.ensure_future(main())  # Usar ensure_future en lugar de asyncio.run
+    asyncio.get_event_loop().run_forever()  # Asegurarse de que el bucle de eventos siga ejecutándose
+
 
