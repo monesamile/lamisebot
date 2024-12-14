@@ -52,7 +52,7 @@ async def delete_canal(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # Función principal
-async def main():
+def main():
     # Inicializar la aplicación
     application = Application.builder().token(TOKEN).build()
 
@@ -61,11 +61,11 @@ async def main():
     application.add_handler(CommandHandler('list', list_canales))
     application.add_handler(CommandHandler('delete', delete_canal))
 
-    # Ejecutar el bot sin conflictos de event loop
-    await application.run_polling()
+    # Ejecutar el bot sin necesidad de asyncio.run()
+    application.run_polling()
 
 
 # Ejecutar la aplicación
 if __name__ == '__main__':
-    import asyncio
-    asyncio.run(main())
+    main()
+
