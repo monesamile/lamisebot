@@ -1,26 +1,19 @@
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import Updater, CommandHandler
 
-# Token de tu bot
-TOKEN = '7130748281:AAHsjLC4CgUPxyf0uBJ1I7InO7Nd6KlXOB4'  # Sustituir con tu token
+# Reemplaza 'TOKEN' con el token real de tu bot
+TOKEN = '7130748281:AAHsjLC4CgUPxyf0uBJ1I7InO7Nd6KlXOB4'
 
-# Función para el comando /start
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("¡Hola Mundo!")
+def start(update, context):
+    update.message.reply_text("¡Hola, soy tu bot!")
 
-# Función principal para iniciar el bot
-async def main():
-    # Crear el Application con el token de tu bot
-    application = Application.builder().token(TOKEN).build()
+def main():
+    updater = Updater(TOKEN, use_context=True)
+    dispatcher = updater.dispatcher
 
-    # Añadir el manejador de comandos
-    application.add_handler(CommandHandler('start', start))
+    dispatcher.add_handler(CommandHandler('start', start))
 
-    # Iniciar el bot
-    await application.run_polling()
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == '__main__':
-    import asyncio
-    asyncio.run(main())
-
-
+    main()
