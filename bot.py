@@ -1,7 +1,7 @@
 from telegram.ext import Updater, CommandHandler
 
 # Reemplaza 'TOKEN' con el token real de tu bot
-TOKEN = 'TU_TOKEN_DE_TELEGRAM'
+TOKEN = '7130748281:AAHsjLC4CgUPxyf0uBJ1I7InO7Nd6KlXOB4'
 
 def start(update, context):
     update.message.reply_text("¡Hola, soy tu bot!")
