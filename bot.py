@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 CHANNEL_IDS = []  # Lista de IDs de canales
 
 # Tu bot token
-TOKEN = '7130748281:AAHsjLC4CgUPxyf0uBJ1I7InO7Nd6KlXOB4'  # Sustituir con tu token de Telegram
+TOKEN = 'TU_BOT_TOKEN'  # Sustituir con tu token de Telegram
 
 
 # Comando: /add <canal_id>
@@ -100,6 +100,15 @@ async def main():
     await application.run_polling()
 
 
-# Ejecutar la aplicación
+# Ejecutar la aplicación sin conflictos de event loop
 if __name__ == '__main__':
-    asyncio.run(main())
+    try:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main())
+    except RuntimeError as e:
+        if str(e) == "This event loop is already running":
+            # Si el event loop ya está en ejecución, ejecutamos el bot de otra forma
+            asyncio.run(main())
+        else:
+            raise e
+
