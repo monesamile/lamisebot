@@ -101,7 +101,7 @@ async def main():
     application.add_handler(CommandHandler("delete", delete_channel))  # Eliminar canal
     application.add_handler(CommandHandler("SubirAnuncioPrueba1min", subir_anuncio_prueba))  # Enviar anuncio de prueba
 
-    # Iniciar el bot sin llamar a asyncio.run()
+    # Iniciar el bot
     await application.run_polling()
 
 if __name__ == '__main__':
