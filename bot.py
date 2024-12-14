@@ -80,7 +80,7 @@ async def subir_anuncio_prueba(update: Update, context: ContextTypes.DEFAULT_TYP
 
 # Función principal
 async def main():
-    # Inicializar la aplicación y el scheduler
+    # Inicializar la aplicación
     application = Application.builder().token(TOKEN).build()
 
     # Comandos del bot
@@ -89,8 +89,8 @@ async def main():
     application.add_handler(CommandHandler('delete', delete_canal))
     application.add_handler(CommandHandler('SubirAnuncioPrueba1min', subir_anuncio_prueba))
 
-    # Iniciar el bot
-    await application.start_polling()
+    # Iniciar el bot con run_polling
+    await application.run_polling()
 
 
 if __name__ == '__main__':
