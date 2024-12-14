@@ -35,7 +35,7 @@ def main():
     # Comandos
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('addCanalID', add_canal_id))
-    application.add_handler(CommandHandler('mostrarcanalesañadidos', mostrar_canales))  # Cambio a minúsculas
+    application.add_handler(CommandHandler('mostrar_canales', mostrar_canales))  # Cambié el nombre aquí
 
     # Iniciar el polling
     application.run_polling()
