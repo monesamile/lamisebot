@@ -89,13 +89,14 @@ async def main():
     application.add_handler(CommandHandler('delete', delete_canal))
     application.add_handler(CommandHandler('SubirAnuncioPrueba1min', subir_anuncio_prueba))
 
-    # Iniciar el bot con run_polling
-    await application.run_polling()
+    # Ejecutar el bot usando un bucle no bloqueante
+    await application.initialize()
+    await application.start()
+    print("Bot iniciado con éxito. Esperando comandos...")
+    await application.updater.start_polling()  # Cambiado para no cerrar el bucle
+    await asyncio.Event().wait()  # Esto mantiene el script en ejecución de forma indefinida
 
 
-# Ejecutar el bucle en entornos activos
+# Ejecutar la aplicación
 if __name__ == '__main__':
-    # Usar asyncio.get_event_loop() para entornos con un bucle activo
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
-
+    asyncio.run(main())
