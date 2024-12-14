@@ -41,6 +41,9 @@ async def test_mensaje(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 # Enviar el mensaje al canal
                 await context.bot.send_message(chat_id=canal_id, text="¡Hola Mundo!")
+            except Exception as e:
+                # Si ocurre un error al enviar el mensaje, lo imprimimos
+                print(f"Error al enviar mensaje al canal {canal_id}: {e}")
         await update.message.reply_text(f"Mensaje enviado a {len(canales)} canal(es).")
     else:
         await update.message.reply_text("No hay canales añadidos para enviar el mensaje.")
@@ -59,4 +62,6 @@ def main():
     application.run_polling()
 
 if __name__ == '__main__':
+    main()
+
     main()
