@@ -67,7 +67,9 @@ async def editar_imagen(update: Update, context: CallbackContext):
             file_path = os.path.join(IMAGE_DIR, f"imagen_{update.message.message_id}.jpg")
             await file.download_to_drive(file_path)
             context.user_data['imagen_guardada'] = file_path
-            await update.message.reply_text("Imagen guardada correctamente.")
+            # Enviar la imagen de vista previa antes de guardarla definitivamente
+            with open(file_path, 'rb') as image_file:
+                await update.message.reply_photo(photo=image_file, caption="Imagen guardada correctamente.")
         else:
             await update.message.reply_text("Por favor, sube una imagen para guardar.")
     else:
