@@ -16,6 +16,9 @@ if not os.path.exists(IMAGE_DIR):
 canales = []
 mensajes_enviados = []  # Para almacenar los mensajes enviados
 
+# Lock para evitar la ejecución simultánea de la verificación
+lock = asyncio.Lock()
+
 # Función para verificar si un usuario tiene permiso
 def tiene_permiso(update: Update):
     return update.message.from_user.id in ALLOWED_IDS
@@ -117,36 +120,37 @@ async def delete_canal(update: Update, context: CallbackContext):
     else:
         await update.message.reply_text("No tienes permisos para usar este comando.")
 
-# Función para verificar si los mensajes han sido eliminados
+# Función para verificar los mensajes eliminados
 async def verificar_mensaje(context: CallbackContext):
-    while True:
-        await asyncio.sleep(60)  # Esperar un minuto
-        for mensaje in mensajes_enviados:
-            try:
-                # Intentar obtener el mensaje para ver si sigue existiendo
-                await context.bot.get_message(chat_id=mensaje['chat_id'], message_id=mensaje['message_id'])
-            except Exception as e:
-                # Si el mensaje ha sido eliminado, se captura la excepción
-                print(f"Mensaje con ID {mensaje['message_id']} ha sido eliminado.")
-
-                # Obtener detalles del canal para conseguir el nombre de usuario
+    async with lock:  # Asegura que solo se ejecute una vez
+        while True:
+            await asyncio.sleep(60)  # Esperar un minuto
+            for mensaje in mensajes_enviados:
                 try:
-                    chat = await context.bot.get_chat(mensaje['chat_id'])
-                    canal_username = chat.username  # Obtener el @username del canal
+                    # Intentar obtener el mensaje para ver si sigue existiendo
+                    await context.bot.get_message(chat_id=mensaje['chat_id'], message_id=mensaje['message_id'])
+                except Exception as e:
+                    # Si el mensaje ha sido eliminado, se captura la excepción
+                    print(f"Mensaje con ID {mensaje['message_id']} ha sido eliminado.")
 
-                    # Notificar a las IDs verificadas
-                    for id_verificada in ALLOWED_IDS:
-                        mensaje_alerta = f"¡Alerta! El mensaje con ID {mensaje['message_id']} ha sido eliminado en el canal @{canal_username}."
-                        try:
-                            await context.bot.send_message(chat_id=id_verificada, text=mensaje_alerta)
-                        except Exception as alert_error:
-                            print(f"No se pudo enviar la alerta a la ID {id_verificada}: {alert_error}")
-                except Exception as chat_error:
-                    print(f"No se pudo obtener el nombre de usuario del canal con ID {mensaje['chat_id']}: {chat_error}")
+                    # Obtener detalles del canal para conseguir el nombre de usuario
+                    try:
+                        chat = await context.bot.get_chat(mensaje['chat_id'])
+                        canal_username = chat.username  # Obtener el @username del canal
 
-                # Eliminar el mensaje de la lista
-                mensajes_enviados.remove(mensaje)
-                break  # Salir del bucle porque ya se procesó la eliminación del mensaje
+                        # Notificar a las IDs verificadas
+                        for id_verificada in ALLOWED_IDS:
+                            mensaje_alerta = f"¡Alerta! El mensaje con ID {mensaje['message_id']} ha sido eliminado en el canal @{canal_username}."
+                            try:
+                                await context.bot.send_message(chat_id=id_verificada, text=mensaje_alerta)
+                            except Exception as alert_error:
+                                print(f"No se pudo enviar la alerta a la ID {id_verificada}: {alert_error}")
+                    except Exception as chat_error:
+                        print(f"No se pudo obtener el nombre de usuario del canal con ID {mensaje['chat_id']}: {chat_error}")
+
+                    # Eliminar el mensaje de la lista
+                    mensajes_enviados.remove(mensaje)
+                    break  # Salir del bucle porque ya se procesó la eliminación del mensaje
 
 # Función principal que arranca el bot
 def main():
