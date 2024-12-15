@@ -6,39 +6,12 @@ import os
 TOKEN = '7130748281:AAHsjLC4CgUPxyf0uBJ1I7InO7Nd6KlXOB4'
 ALLOWED_IDS = [6131021703, 1001520614779]  # Lista de IDs permitidos
 
-# Carpeta donde se guardarán las imágenes subidas
-IMAGE_DIR = "images"
-if not os.path.exists(IMAGE_DIR):
-    os.makedirs(IMAGE_DIR)
-
 # Lista de canales donde se enviarán los mensajes
 canales = []
 
 # Función para verificar si un usuario tiene permiso
 def tiene_permiso(update: Update):
     return update.message.from_user.id in ALLOWED_IDS
-
-# Función para manejar la eliminación de mensajes
-async def mensaje_borrado(update: Update, context: CallbackContext):
-    if update.message is None:  # Verificamos que el mensaje realmente haya sido borrado
-        if update.deleted_message:
-            # Información sobre el mensaje eliminado
-            canal = update.message.chat
-            eliminado_por = update.message.from_user.username if update.message.from_user else "Desconocido"
-            propietario = canal.username if canal.username else "Desconocido"
-
-            # Notificación a las IDs verificadas
-            for user_id in ALLOWED_IDS:
-                try:
-                    await context.bot.send_message(
-                        chat_id=user_id,
-                        text=f"El mensaje ha sido borrado en el canal @{canal.username if canal.username else canal.title}.\n"
-                             f"Eliminado por: {eliminado_por}\n"
-                             f"Propietario del canal: {propietario}\n"
-                             f"Canal ID: {canal.id}"
-                    )
-                except Exception as e:
-                    print(f"Error enviando mensaje a {user_id}: {e}")
 
 # Comando /start - Muestra los comandos disponibles
 async def start(update: Update, context: CallbackContext):
@@ -92,7 +65,7 @@ async def manejar_imagen(update: Update, context: CallbackContext):
         if update.message.photo:  # Si el mensaje contiene una imagen
             photo = update.message.photo[-1]  # Obtener la imagen más grande (última en la lista)
             file = await photo.get_file()  # Obtener el archivo
-            file_path = os.path.join(IMAGE_DIR, f"imagen_{update.message.message_id}.jpg")  # Ruta donde guardamos la imagen
+            file_path = os.path.join("images", f"imagen_{update.message.message_id}.jpg")  # Ruta donde guardamos la imagen
             await file.download_to_drive(file_path)  # Guardar la imagen
 
             # Guardar la ruta de la imagen en los datos del usuario
@@ -175,7 +148,19 @@ async def delete_canal(update: Update, context: CallbackContext):
     else:
         await update.message.reply_text("No tienes permisos para usar este comando.")
 
-# Función principal que arranca el bot
+# Manejador para los mensajes eliminados
+async def mensaje_borrado(update: Update, context: CallbackContext):
+    if update.message is None:
+        # El mensaje ha sido eliminado.
+        print(f"Mensaje eliminado en el chat {update.chat_id}")
+        # Enviar un mensaje a las IDs permitidas con la información del mensaje borrado
+        for allowed_id in ALLOWED_IDS:
+            await context.bot.send_message(
+                chat_id=allowed_id,
+                text=f"¡Un mensaje ha sido eliminado en el canal {update.chat_id}!\n"
+                     f"Nombre del propietario: {update.from_user.full_name}."
+            )
+
 def main():
     application = Application.builder().token(TOKEN).build()
 
@@ -188,16 +173,17 @@ def main():
     application.add_handler(CommandHandler('testMensaje', test_mensaje))
     application.add_handler(CommandHandler('deletecanal', delete_canal))
 
-    # Añadir manejador para los mensajes borrados
-    application.add_handler(MessageHandler(filters.Deleted, mensaje_borrado))
-
     # Añadir manejadores para recibir texto e imágenes
     application.add_handler(MessageHandler(filters.PHOTO, manejar_imagen))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, manejar_texto))
+
+    # Manejador para los mensajes borrados
+    application.add_handler(MessageHandler(filters.ALL, mensaje_borrado))
 
     # Arrancar el bot con polling
     application.run_polling()
 
 if __name__ == '__main__':
     main()
+
 
