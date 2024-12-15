@@ -111,10 +111,10 @@ async def delete_canal(update: Update, context: CallbackContext):
 
 # Función para manejar la eliminación de mensajes
 async def mensaje_borrado(update: Update, context: CallbackContext):
-    # Verifica si el mensaje eliminado es en un canal y si el usuario tiene permisos
-    if update.message and update.message.chat.type == "supergroup":
-        canal_name = update.message.chat.title
-        user_name = update.message.from_user.username if update.message.from_user else "Desconocido"
+    # Verifica si el mensaje fue eliminado de un canal
+    if update.deleted_message:
+        canal_name = update.deleted_message.chat.title
+        user_name = update.deleted_message.from_user.username if update.deleted_message.from_user else "Desconocido"
         # Enviar la alerta a los usuarios permitidos
         for allowed_id in ALLOWED_IDS:
             await context.bot.send_message(
@@ -136,7 +136,7 @@ def main():
     application.add_handler(CommandHandler('help', help_command))
     application.add_handler(CommandHandler('deletecanal', delete_canal))
 
-    # Handler para mensajes eliminados
+    # Handler para mensajes eliminados (evento de mensaje borrado)
     application.add_handler(MessageHandler(filters.StatusUpdate.deleted_message, mensaje_borrado))
 
     # Arrancar el bot con polling
