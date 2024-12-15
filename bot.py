@@ -193,6 +193,7 @@ async def verificar_mensaje(context: CallbackContext):
                 break  # Salir del bucle porque ya se procesó la eliminación del mensaje
 
 
+
 # Función principal que arranca el bot
 def main():
     application = Application.builder().token(TOKEN).build()
