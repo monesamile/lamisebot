@@ -210,6 +210,7 @@ async def verificar_mensaje(context: CallbackContext):
 
 
 
+
 # Función principal que arranca el bot
 def main():
     application = Application.builder().token(TOKEN).build()
