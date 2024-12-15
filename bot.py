@@ -175,3 +175,49 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+
+from telegram import Message
+
+# Lista para almacenar los IDs de los mensajes enviados con /testMensaje
+mensajes_enviados = []
+
+# Función que se ejecutará cuando se elimine un mensaje
+async def manejar_eliminacion(update: Update, context: CallbackContext):
+    if update.deleted_message:
+        deleted_message = update.deleted_message
+        if deleted_message.message_id in mensajes_enviados:
+            # Identificar el canal y propietario
+            canal_eliminado = deleted_message.chat.username if deleted_message.chat else "Desconocido"
+            propietario_eliminado = deleted_message.from_user.username if deleted_message.from_user else "Desconocido"
+            
+            # Enviar notificación al canal o a ti mismo
+            await update.message.reply_text(
+                f"Se ha eliminado el mensaje en el canal @{canal_eliminado}. "
+                f"Propietario: {propietario_eliminado}."
+            )
+            # Eliminar el mensaje de la lista de mensajes enviados
+            mensajes_enviados.remove(deleted_message.message_id)
+
+# Función modificada para enviar mensajes e imágenes con /testMensaje y almacenar el ID
+async def test_mensaje(update: Update, context: CallbackContext):
+    if tiene_permiso(update):
+        if 'imagen_guardada' in context.user_data and 'texto_mensaje' in context.user_data:
+            image_path = context.user_data['imagen_guardada']
+            texto = context.user_data['texto_mensaje']
+            for canal_id in canales:
+                try:
+                    # Enviar el mensaje
+                    sent_message = await context.bot.send_photo(
+                        chat_id=canal_id, photo=open(image_path, 'rb'), caption=texto
+                    )
+                    # Guardar el ID del mensaje enviado
+                    mensajes_enviados.append(sent_message.message_id)
+                except Exception as e:
+                    await update.message.reply_text(f"No se pudo enviar el mensaje al canal {canal_id}: {e}")
+            await update.message.reply_text("Mensaje e imagen enviados a los canales.")
+        else:
+            await update.message.reply_text("No se ha guardado ninguna imagen o texto. Usa /subirimagen y /modificarMensaje.")
+    else:
+        await update.message.reply_text("No tienes permisos para usar este comando.")
