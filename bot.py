@@ -168,7 +168,9 @@ async def verificar_mensaje(context: CallbackContext):
         for mensaje in mensajes_enviados:
             try:
                 # Intentar obtener el mensaje para ver si sigue existiendo
-                await context.bot.get_message(chat_id=mensaje['chat_id'], message_id=mensaje['message_id'])
+                message = await context.bot.get_message(chat_id=mensaje['chat_id'], message_id=mensaje['message_id'])
+                # Si no lanza excepción, significa que el mensaje sigue existiendo
+                print(f"Mensaje con ID {mensaje['message_id']} sigue existiendo en el canal {mensaje['chat_id']}.")
             except Exception as e:
                 # Si el mensaje ha sido eliminado, se captura la excepción
                 print(f"Mensaje con ID {mensaje['message_id']} ha sido eliminado en el canal {mensaje['chat_id']}.")
@@ -190,6 +192,7 @@ async def verificar_mensaje(context: CallbackContext):
                 
                 # Eliminar el mensaje de la lista
                 mensajes_enviados.remove(mensaje)
+
 
 
 # Función principal que arranca el bot
