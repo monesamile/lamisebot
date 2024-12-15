@@ -55,24 +55,50 @@ async def listar_canales(update: Update, context: CallbackContext):
     else:
         await update.message.reply_text("No tienes permisos para usar este comando.")
 
-# Comando /editarimagen - Subir una imagen
-# Comando /editarimagen - Subir una imagen
-# Comando /editarimagen - Subir una imagen
-async def editar_imagen(update: Update, context: CallbackContext):
+async def subir_imagen(update: Update, context: CallbackContext):
+    # Verifica si el usuario tiene permisos para subir imágenes
     if tiene_permiso(update):
-        if update.message.photo:  # Verificar si el mensaje contiene una foto
-            print("Imagen recibida, procesando...")  # Verificación de depuración
+        # Inicia el proceso pidiendo la imagen
+        await update.message.reply_text("Por favor, sube una imagen para el anuncio.")
+        
+        # Espera la respuesta del usuario con la imagen
+        context.user_data['esperando_imagen'] = True  # Indicamos que estamos esperando una imagen
+        
+    else:
+        await update.message.reply_text("No tienes permisos para usar este comando.")  # Mensaje si no tienes permisos
+
+# Este manejador se ejecutará cuando el usuario envíe una imagen
+async def manejar_imagen(update: Update, context: CallbackContext):
+    if 'esperando_imagen' in context.user_data and context.user_data['esperando_imagen']:
+        if update.message.photo:  # Si el mensaje contiene una imagen
+            print("Imagen recibida, procesando...")  # Depuración
             photo = update.message.photo[-1]  # Obtener la imagen más grande (última en la lista)
             file = await photo.get_file()  # Obtener el archivo
-            file_path = os.path.join(IMAGE_DIR, f"imagen_{update.message.message_id}.jpg")  # Establecer la ruta para guardar la imagen
-            print(f"Guardando imagen en: {file_path}")  # Verificación de depuración
-            await file.download_to_drive(file_path)  # Descargar la imagen al servidor
-            context.user_data['imagen_guardada'] = file_path  # Guardar la ruta en los datos del usuario
-            await update.message.reply_text(f"Imagen guardada correctamente en: {file_path}")  # Confirmación
+            file_path = os.path.join(IMAGE_DIR, f"imagen_{update.message.message_id}.jpg")  # Ruta donde guardamos la imagen
+            await file.download_to_drive(file_path)  # Guardar la imagen
+
+            # Guardar la ruta de la imagen en los datos del usuario
+            context.user_data['imagen_guardada'] = file_path
+
+            # Confirmación al usuario
+            await update.message.reply_text(
+                f"¡Ok! Tu imagen para el anuncio es:\n"
+                f"[Vista previa de la imagen]({file_path})", 
+                parse_mode='Markdown'
+            )
+            # Mostrar la imagen en el chat
+            with open(file_path, 'rb') as image_file:
+                await update.message.reply_photo(image_file, caption="Aquí está la imagen que elegiste para el anuncio.")
+            
+            # Desactivar la espera de la imagen
+            context.user_data['esperando_imagen'] = False
         else:
-            await update.message.reply_text("Por favor, sube una imagen para guardar.")  # Mensaje si no hay imagen
+            # Si el mensaje no contiene una imagen, pedirle que suba una
+            await update.message.reply_text("Por favor, sube una imagen válida.")
     else:
-        await update.message.reply_text("No tienes permisos para usar este comando.")  # Mensaje si el usuario no tiene permisos
+        # Si no estamos esperando una imagen, ignora el mensaje
+        await update.message.reply_text("No estoy esperando una imagen en este momento.")
+
 
 
 
