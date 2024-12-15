@@ -4,15 +4,15 @@ import os
 
 # Configuración básica
 TOKEN = '7130748281:AAHsjLC4CgUPxyf0uBJ1I7InO7Nd6KlXOB4'
-ALLOWED_IDS = [6131021703, 1001520614779]  # Lista de IDs permitidos
+ALLOWED_IDS = [6131021703, 1001520614779]  # Lista de IDs permitidos (tu ID de usuario)
 
 # Carpeta donde se guardarán las imágenes subidas
 IMAGE_DIR = "images"
 if not os.path.exists(IMAGE_DIR):
     os.makedirs(IMAGE_DIR)
 
-# Lista de canales donde se enviarán los mensajes
-canales = []
+# Lista de canales y propietarios donde se enviarán los mensajes
+canales = []  # Ejemplo: [{'canal_id': '@miCanal', 'propietario': '@propietario'}]
 
 # Función para verificar si un usuario tiene permiso
 def tiene_permiso(update: Update):
@@ -36,12 +36,13 @@ async def start(update: Update, context: CallbackContext):
 # Comando /addcanal - Añadir un canal
 async def add_canal(update: Update, context: CallbackContext):
     if tiene_permiso(update):
-        if context.args:
+        if len(context.args) >= 2:
             canal_id = context.args[0]
-            canales.append(canal_id)
-            await update.message.reply_text(f"Canal {canal_id} añadido correctamente.")
+            propietario = context.args[1]
+            canales.append({'canal_id': canal_id, 'propietario': propietario})
+            await update.message.reply_text(f"Canal {canal_id} añadido correctamente con propietario {propietario}.")
         else:
-            await update.message.reply_text("Por favor, proporciona un ID de canal. Ejemplo: /addcanal @miCanal")
+            await update.message.reply_text("Por favor, proporciona un ID de canal y un propietario. Ejemplo: /addcanal @miCanal @propietario")
     else:
         await update.message.reply_text("No tienes permisos para usar este comando.")
 
@@ -49,7 +50,7 @@ async def add_canal(update: Update, context: CallbackContext):
 async def listar_canales(update: Update, context: CallbackContext):
     if tiene_permiso(update):
         if canales:
-            canales_str = "\n".join([f"@{canal}" for canal in canales])
+            canales_str = "\n".join([f"Canal: {canal['canal_id']}, Propietario: {canal['propietario']}" for canal in canales])
             await update.message.reply_text(f"Canales añadidos:\n{canales_str}")
         else:
             await update.message.reply_text("No hay canales añadidos.")
@@ -127,11 +128,11 @@ async def test_mensaje(update: Update, context: CallbackContext):
             image_path = context.user_data['imagen_guardada']
             texto = context.user_data['texto_mensaje']
             with open(image_path, 'rb') as image_file:
-                for canal_id in canales:
+                for canal in canales:
                     try:
-                        await context.bot.send_photo(chat_id=canal_id, photo=image_file, caption=texto)
+                        await context.bot.send_photo(chat_id=canal['canal_id'], photo=image_file, caption=texto)
                     except Exception as e:
-                        await update.message.reply_text(f"No se pudo enviar el mensaje al canal {canal_id}: {e}")
+                        await update.message.reply_text(f"No se pudo enviar el mensaje al canal {canal['canal_id']}: {e}")
                 await update.message.reply_text("Mensaje e imagen enviados a los canales.")
         else:
             await update.message.reply_text("No se ha guardado ninguna imagen o texto. Usa /subirimagen y /modificarMensaje.")
@@ -143,8 +144,9 @@ async def delete_canal(update: Update, context: CallbackContext):
     if tiene_permiso(update):
         if context.args:
             canal_id = context.args[0]
-            if canal_id in canales:
-                canales.remove(canal_id)
+            canal = next((c for c in canales if c['canal_id'] == canal_id), None)
+            if canal:
+                canales.remove(canal)
                 await update.message.reply_text(f"Canal {canal_id} eliminado.")
             else:
                 await update.message.reply_text(f"Canal {canal_id} no encontrado.")
@@ -152,6 +154,19 @@ async def delete_canal(update: Update, context: CallbackContext):
             await update.message.reply_text("Por favor, proporciona un ID de canal. Ejemplo: /deletecanal @miCanal")
     else:
         await update.message.reply_text("No tienes permisos para usar este comando.")
+
+# Manejador para detectar la eliminación de mensajes en los canales
+async def on_message_deleted(update: Update, context: CallbackContext):
+    if update.message and update.message.chat:
+        # Buscar el canal que corresponde al ID de chat
+        canal = next((c for c in canales if c['canal_id'] == update.message.chat.username), None)
+        if canal:
+            # Notificar al administrador sobre la eliminación del mensaje
+            propietario = canal['propietario']
+            await context.bot.send_message(
+                chat_id=ALLOWED_IDS[0],  # Te notifica en tu chat (admin)
+                text=f"El mensaje en el canal {canal['canal_id']} fue eliminado.\nPropietario del canal: {propietario}"
+            )
 
 # Función principal que arranca el bot
 def main():
@@ -169,6 +184,9 @@ def main():
     # Añadir manejadores para recibir texto e imágenes
     application.add_handler(MessageHandler(filters.PHOTO, manejar_imagen))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, manejar_texto))
+
+    # Manejador para la eliminación de mensajes
+    application.add_handler(MessageHandler(filters.StatusUpdate.MESSAGE_DELETED, on_message_deleted))
 
     # Arrancar el bot con polling
     application.run_polling()
