@@ -59,9 +59,9 @@ async def listar_canales(update: Update, context: CallbackContext):
 
 # Manejador para detectar cambios en el canal o eliminación indirecta de mensajes
 async def on_chat_member_update(update: Update, context: CallbackContext):
-    if update.my_chat_member:
-        chat = update.my_chat_member.chat
-        status = update.my_chat_member.new_chat_member.status
+    if update.chat_member:
+        chat = update.chat_member.chat
+        status = update.chat_member.new_chat_member.status
         if status in ["kicked", "left"]:  # Detectar cuando el bot es expulsado o el canal se elimina
             canal = next((c for c in canales if c['canal_id'] == f"@{chat.username}"), None)
             if canal:
@@ -92,7 +92,7 @@ def main():
     application.add_handler(CommandHandler('listacanales', listar_canales))
 
     # Manejador para actualizaciones de estado del bot en un canal
-    application.add_handler(MessageHandler(filters.StatusUpdate.MY_CHAT_MEMBER, on_chat_member_update))
+    application.add_handler(MessageHandler(filters.ChatMember.UPDATE, on_chat_member_update))
 
     # Arrancar el bot con polling
     application.run_polling()
