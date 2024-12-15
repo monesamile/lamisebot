@@ -26,7 +26,7 @@ async def start(update: Update, context: CallbackContext):
             "/start - Muestra los comandos disponibles\n"
             "/addcanal - Añadir un canal\n"
             "/listacanales - Ver canales añadidos\n"
-            "/editarimagen - Subir una imagen\n"
+            "/subirimagen - Subir una imagen\n"
             "/testMensaje - Enviar un mensaje a los canales"
         )
     else:
@@ -55,15 +55,12 @@ async def listar_canales(update: Update, context: CallbackContext):
     else:
         await update.message.reply_text("No tienes permisos para usar este comando.")
 
+# Comando /subirimagen - Iniciar la subida de una imagen
 async def subir_imagen(update: Update, context: CallbackContext):
-    # Verifica si el usuario tiene permisos para subir imágenes
     if tiene_permiso(update):
         # Inicia el proceso pidiendo la imagen
         await update.message.reply_text("Por favor, sube una imagen para el anuncio.")
-        
-        # Espera la respuesta del usuario con la imagen
         context.user_data['esperando_imagen'] = True  # Indicamos que estamos esperando una imagen
-        
     else:
         await update.message.reply_text("No tienes permisos para usar este comando.")  # Mensaje si no tienes permisos
 
@@ -81,15 +78,12 @@ async def manejar_imagen(update: Update, context: CallbackContext):
             context.user_data['imagen_guardada'] = file_path
 
             # Confirmación al usuario
-            await update.message.reply_text(
-                f"¡Ok! Tu imagen para el anuncio es:\n"
-                f"[Vista previa de la imagen]({file_path})", 
-                parse_mode='Markdown'
-            )
+            await update.message.reply_text("¡Ok! Tu imagen para el anuncio es:")
+
             # Mostrar la imagen en el chat
             with open(file_path, 'rb') as image_file:
-                await update.message.reply_photo(image_file, caption="Aquí está la imagen que elegiste para el anuncio.")
-            
+                await update.message.reply_photo(image_file)
+
             # Desactivar la espera de la imagen
             context.user_data['esperando_imagen'] = False
         else:
@@ -98,11 +92,6 @@ async def manejar_imagen(update: Update, context: CallbackContext):
     else:
         # Si no estamos esperando una imagen, ignora el mensaje
         await update.message.reply_text("No estoy esperando una imagen en este momento.")
-
-
-
-
-
 
 # Comando /testMensaje - Enviar mensaje e imagen a los canales
 async def test_mensaje(update: Update, context: CallbackContext):
@@ -117,7 +106,7 @@ async def test_mensaje(update: Update, context: CallbackContext):
                         await update.message.reply_text(f"No se pudo enviar el mensaje al canal {canal_id}: {e}")
                 await update.message.reply_text("Mensaje e imagen enviados a los canales.")
         else:
-            await update.message.reply_text("No se ha guardado ninguna imagen. Usa /editarimagen.")
+            await update.message.reply_text("No se ha guardado ninguna imagen. Usa /subirimagen.")
     else:
         await update.message.reply_text("No tienes permisos para usar este comando.")
 
@@ -156,10 +145,12 @@ def main():
     application.add_handler(CommandHandler('help', help_command))
     application.add_handler(CommandHandler('deletecanal', delete_canal))
 
+    # Añadir el handler para manejar imágenes
+    application.add_handler(MessageHandler(filters.PHOTO, manejar_imagen))
+
     # Arrancar el bot con polling
     application.run_polling()
 
 if __name__ == '__main__':
     main()
-
 
