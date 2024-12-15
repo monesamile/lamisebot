@@ -167,11 +167,11 @@ async def verificar_mensaje(context: CallbackContext):
         await asyncio.sleep(60)  # Esperar un minuto
         for mensaje in mensajes_enviados:
             try:
-                # Intentar editar el mensaje para ver si sigue existiendo
-                await context.bot.edit_message_text(chat_id=mensaje['chat_id'], message_id=mensaje['message_id'], text="Mensaje de prueba modificado.")
+                # Intentar obtener el mensaje para ver si sigue existiendo
+                await context.bot.get_message(chat_id=mensaje['chat_id'], message_id=mensaje['message_id'])
             except Exception as e:
-                # Si el mensaje fue eliminado, se captura la excepción
-                print(f"Mensaje con ID {mensaje['message_id']} ha sido eliminado.")
+                # Si el mensaje ha sido eliminado, se captura la excepción
+                print(f"Mensaje con ID {mensaje['message_id']} ha sido eliminado en el canal {mensaje['chat_id']}.")
                 
                 # Obtener detalles del canal para conseguir el nombre de usuario
                 try:
@@ -190,6 +190,7 @@ async def verificar_mensaje(context: CallbackContext):
                 
                 # Eliminar el mensaje de la lista
                 mensajes_enviados.remove(mensaje)
+
 
 # Función principal que arranca el bot
 def main():
