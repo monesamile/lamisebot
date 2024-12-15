@@ -58,13 +58,19 @@ async def listar_canales(update: Update, context: CallbackContext):
 # Comando /editarimagen - Subir una imagen
 async def editar_imagen(update: Update, context: CallbackContext):
     if tiene_permiso(update):  # Verificar si el usuario tiene permisos
+        print("Recibiendo imagen...")  # Para depuración
         if update.message.photo:  # Verificar si el mensaje contiene una foto
+            print("Imagen recibida.")  # Para depuración
             photo = update.message.photo[-1]  # Obtener la imagen más grande (última en la lista)
             file = await photo.get_file()  # Obtener el archivo
             file_path = os.path.join(IMAGE_DIR, f"imagen_{update.message.message_id}.jpg")  # Establecer la ruta para guardar la imagen
-            await file.download_to_drive(file_path)  # Descargar la imagen al servidor
-            context.user_data['imagen_guardada'] = file_path  # Guardar la ruta en los datos del usuario
-            await update.message.reply_text("Imagen guardada correctamente.")  # Confirmación
+            print(f"Descargando imagen a: {file_path}")  # Para depuración
+            try:
+                await file.download_to_drive(file_path)  # Descargar la imagen al servidor
+                context.user_data['imagen_guardada'] = file_path  # Guardar la ruta en los datos del usuario
+                await update.message.reply_text("Imagen guardada correctamente.")  # Confirmación
+            except Exception as e:
+                await update.message.reply_text(f"Error al guardar la imagen: {str(e)}")  # Mostrar el error
         else:
             await update.message.reply_text("Por favor, sube una imagen para guardar.")  # Mensaje si no hay imagen
     else:
@@ -128,4 +134,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
