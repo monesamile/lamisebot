@@ -1,3 +1,20 @@
+from flask import Flask
+import threading
+
+# Crear la aplicación Flask
+app = Flask(__name__)
+
+@app.route('/')
+def hello():
+    return "Bot en funcionamiento"
+
+def run_flask():
+    app.run(host='0.0.0.0', port=5000)
+
+# Arrancar Flask en un hilo separado
+threading.Thread(target=run_flask).start()
+
+
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 import os
