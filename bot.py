@@ -1,6 +1,7 @@
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 import os
+import asyncio
 
 # Configuración básica
 TOKEN = '7130748281:AAHsjLC4CgUPxyf0uBJ1I7InO7Nd6KlXOB4'
@@ -13,6 +14,9 @@ if not os.path.exists(IMAGE_DIR):
 
 # Lista de canales donde se enviarán los mensajes
 canales = []
+
+# Lista para guardar los mensajes enviados (chat_id y message_id)
+mensajes_enviados = []
 
 # Función para verificar si un usuario tiene permiso
 def tiene_permiso(update: Update):
@@ -28,7 +32,8 @@ async def start(update: Update, context: CallbackContext):
             "/listacanales - Ver canales añadidos\n"
             "/subirimagen - Subir una imagen\n"
             "/modificarMensaje - Modificar el texto del mensaje\n"
-            "/testMensaje - Enviar un mensaje a los canales"
+            "/testMensaje - Enviar un mensaje a los canales\n"
+            "/borrarmensaje - Borrar un mensaje previamente enviado"
         )
     else:
         await update.message.reply_text("No tienes permisos para usar este bot.")
@@ -129,7 +134,9 @@ async def test_mensaje(update: Update, context: CallbackContext):
             with open(image_path, 'rb') as image_file:
                 for canal_id in canales:
                     try:
-                        await context.bot.send_photo(chat_id=canal_id, photo=image_file, caption=texto)
+                        sent_message = await context.bot.send_photo(chat_id=canal_id, photo=image_file, caption=texto)
+                        # Guardar el mensaje enviado
+                        mensajes_enviados.append({'message_id': sent_message.message_id, 'chat_id': canal_id})
                     except Exception as e:
                         await update.message.reply_text(f"No se pudo enviar el mensaje al canal {canal_id}: {e}")
                 await update.message.reply_text("Mensaje e imagen enviados a los canales.")
@@ -138,20 +145,51 @@ async def test_mensaje(update: Update, context: CallbackContext):
     else:
         await update.message.reply_text("No tienes permisos para usar este comando.")
 
-# Comando /deletecanal - Eliminar un canal de la lista
-async def delete_canal(update: Update, context: CallbackContext):
+# Comando /borrarmensaje - Eliminar un mensaje previamente enviado
+async def borrar_mensaje(update: Update, context: CallbackContext):
     if tiene_permiso(update):
-        if context.args:
-            canal_id = context.args[0]
-            if canal_id in canales:
-                canales.remove(canal_id)
-                await update.message.reply_text(f"Canal {canal_id} eliminado.")
-            else:
-                await update.message.reply_text(f"Canal {canal_id} no encontrado.")
+        if mensajes_enviados:
+            for mensaje in mensajes_enviados:
+                try:
+                    await context.bot.delete_message(chat_id=mensaje['chat_id'], message_id=mensaje['message_id'])
+                    await update.message.reply_text(f"Mensaje en {mensaje['chat_id']} eliminado correctamente.")
+                    mensajes_enviados.remove(mensaje)  # Eliminar de la lista de mensajes enviados
+                except Exception as e:
+                    await update.message.reply_text(f"No se pudo eliminar el mensaje: {e}")
         else:
-            await update.message.reply_text("Por favor, proporciona un ID de canal. Ejemplo: /deletecanal @miCanal")
+            await update.message.reply_text("No hay mensajes para eliminar.")
     else:
         await update.message.reply_text("No tienes permisos para usar este comando.")
+
+# Función para verificar cada minuto si un mensaje sigue existiendo
+async def verificar_mensaje(context: CallbackContext):
+    while True:
+        await asyncio.sleep(60)  # Esperar un minuto
+        for mensaje in mensajes_enviados:
+            try:
+                # Intentar editar el mensaje para ver si sigue existiendo
+                await context.bot.edit_message_text(chat_id=mensaje['chat_id'], message_id=mensaje['message_id'], text="Mensaje de prueba modificado.")
+            except Exception as e:
+                # Si el mensaje fue eliminado, se captura la excepción
+                print(f"Mensaje con ID {mensaje['message_id']} ha sido eliminado.")
+                
+                # Obtener detalles del canal para conseguir el nombre de usuario
+                try:
+                    chat = await context.bot.get_chat(mensaje['chat_id'])
+                    canal_username = chat.username  # Obtener el @username del canal
+
+                    # Notificar a las IDs verificadas
+                    for id_verificada in ALLOWED_IDS:
+                        mensaje_alerta = f"¡Alerta! El mensaje con ID {mensaje['message_id']} ha sido eliminado en el canal @{canal_username}."
+                        try:
+                            await context.bot.send_message(chat_id=id_verificada, text=mensaje_alerta)
+                        except Exception as alert_error:
+                            print(f"No se pudo enviar la alerta a la ID {id_verificada}: {alert_error}")
+                except Exception as chat_error:
+                    print(f"No se pudo obtener el nombre de usuario del canal con ID {mensaje['chat_id']}: {chat_error}")
+                
+                # Eliminar el mensaje de la lista
+                mensajes_enviados.remove(mensaje)
 
 # Función principal que arranca el bot
 def main():
@@ -164,10 +202,12 @@ def main():
     application.add_handler(CommandHandler('subirimagen', subir_imagen))
     application.add_handler(CommandHandler('modificarMensaje', modificar_mensaje))
     application.add_handler(CommandHandler('testMensaje', test_mensaje))
-    application.add_handler(CommandHandler('deletecanal', delete_canal))
+    application.add_handler(CommandHandler('borrarmensaje', borrar_mensaje))
 
-    # Añadir manejadores para recibir texto e imágenes
+    # Añadir el manejador de imágenes
     application.add_handler(MessageHandler(filters.PHOTO, manejar_imagen))
+
+    # Añadir el manejador de texto
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, manejar_texto))
 
     # Arrancar el bot con polling
