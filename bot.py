@@ -11,7 +11,7 @@ IMAGE_DIR = "images"
 if not os.path.exists(IMAGE_DIR):
     os.makedirs(IMAGE_DIR)
 
-# Lista de canales donde se enviarán los mensajes
+# Lista de canales con su propietario
 canales = []
 
 # Función para verificar si un usuario tiene permiso
@@ -27,7 +27,8 @@ async def start(update: Update, context: CallbackContext):
             "/addcanal - Añadir un canal\n"
             "/listacanales - Ver canales añadidos\n"
             "/subirimagen - Subir una imagen\n"
-            "/testMensaje - Enviar un mensaje a los canales"
+            "/testMensaje - Enviar un mensaje a los canales\n"
+            "/modificarMensaje - Modificar el texto de los mensajes"
         )
     else:
         await update.message.reply_text("No tienes permisos para usar este bot.")
@@ -37,8 +38,9 @@ async def add_canal(update: Update, context: CallbackContext):
     if tiene_permiso(update):
         if context.args:
             canal_id = context.args[0]
-            canales.append(canal_id)
-            await update.message.reply_text(f"Canal {canal_id} añadido correctamente.")
+            propietario = update.message.from_user.username  # Obtener el nombre de usuario
+            canales.append({'canal_id': canal_id, 'propietario': propietario})
+            await update.message.reply_text(f"Canal {canal_id} añadido correctamente con propietario @{propietario}.")
         else:
             await update.message.reply_text("Por favor, proporciona un ID de canal. Ejemplo: /addcanal @miCanal")
     else:
@@ -48,10 +50,25 @@ async def add_canal(update: Update, context: CallbackContext):
 async def listar_canales(update: Update, context: CallbackContext):
     if tiene_permiso(update):
         if canales:
-            canales_str = "\n".join(canales)
+            canales_str = ""
+            for canal in canales:
+                canales_str += f"{canal['canal_id']} (Propietario: @{canal['propietario']})\n"
             await update.message.reply_text(f"Canales añadidos:\n{canales_str}")
         else:
             await update.message.reply_text("No hay canales añadidos.")
+    else:
+        await update.message.reply_text("No tienes permisos para usar este comando.")
+
+# Comando /modificarMensaje - Modificar el texto del mensaje
+async def modificar_mensaje(update: Update, context: CallbackContext):
+    if tiene_permiso(update):
+        if context.args:
+            # Modificar el texto del mensaje (captura el texto de los argumentos)
+            texto_nuevo = " ".join(context.args)
+            context.user_data['texto_mensaje'] = texto_nuevo  # Guardar el nuevo texto en los datos del usuario
+            await update.message.reply_text(f"Texto del mensaje modificado: {texto_nuevo}")
+        else:
+            await update.message.reply_text("Por favor, proporciona el nuevo texto para el mensaje. Ejemplo: /modificarMensaje ¡Nuevo mensaje!")
     else:
         await update.message.reply_text("No tienes permisos para usar este comando.")
 
@@ -99,11 +116,12 @@ async def test_mensaje(update: Update, context: CallbackContext):
         if 'imagen_guardada' in context.user_data:
             image_path = context.user_data['imagen_guardada']
             with open(image_path, 'rb') as image_file:
-                for canal_id in canales:
+                for canal in canales:
                     try:
-                        await context.bot.send_photo(chat_id=canal_id, photo=image_file, caption="Holis amores")
+                        texto = context.user_data.get('texto_mensaje', 'Mensaje predeterminado')  # Si no se modificó, usar mensaje predeterminado
+                        await context.bot.send_photo(chat_id=canal['canal_id'], photo=image_file, caption=texto)
                     except Exception as e:
-                        await update.message.reply_text(f"No se pudo enviar el mensaje al canal {canal_id}: {e}")
+                        await update.message.reply_text(f"No se pudo enviar el mensaje al canal {canal['canal_id']}: {e}")
                 await update.message.reply_text("Mensaje e imagen enviados a los canales.")
         else:
             await update.message.reply_text("No se ha guardado ninguna imagen. Usa /subirimagen.")
@@ -122,8 +140,13 @@ async def delete_canal(update: Update, context: CallbackContext):
     if tiene_permiso(update):
         if context.args:
             canal_id = context.args[0]
-            if canal_id in canales:
-                canales.remove(canal_id)
+            canal_eliminado = None
+            for canal in canales:
+                if canal['canal_id'] == canal_id:
+                    canal_eliminado = canal
+                    break
+            if canal_eliminado:
+                canales.remove(canal_eliminado)
                 await update.message.reply_text(f"Canal {canal_id} eliminado.")
             else:
                 await update.message.reply_text(f"Canal {canal_id} no encontrado.")
@@ -140,6 +163,7 @@ def main():
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('addcanal', add_canal))
     application.add_handler(CommandHandler('listacanales', listar_canales))
+    application.add_handler(CommandHandler('modificarMensaje', modificar_mensaje))
     application.add_handler(CommandHandler('subirimagen', subir_imagen))
     application.add_handler(CommandHandler('testMensaje', test_mensaje))
     application.add_handler(CommandHandler('help', help_command))
@@ -153,4 +177,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
