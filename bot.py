@@ -69,6 +69,22 @@ async def subir_imagen(update: Update, context: CallbackContext):
     else:
         await update.message.reply_text("No tienes permisos para usar este comando.")
 
+# Comando /deletecanal - Eliminar un canal de la lista
+async def delete_canal(update: Update, context: CallbackContext):
+    if tiene_permiso(update):
+        if context.args:
+            canal_id = context.args[0]
+            if canal_id in canales:
+                canales.remove(canal_id)
+                await update.message.reply_text(f"Canal {canal_id} eliminado.")
+            else:
+                await update.message.reply_text(f"Canal {canal_id} no encontrado.")
+        else:
+            await update.message.reply_text("Por favor, proporciona un ID de canal. Ejemplo: /deletecanal @miCanal")
+    else:
+        await update.message.reply_text("No tienes permisos para usar este comando.")
+
+
 # Este manejador se ejecutará cuando el usuario envíe una imagen
 async def manejar_imagen(update: Update, context: CallbackContext):
     if 'esperando_imagen' in context.user_data and context.user_data['esperando_imagen']:
