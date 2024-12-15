@@ -151,7 +151,7 @@ def main():
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('addcanal', add_canal))
     application.add_handler(CommandHandler('listacanales', listar_canales))
-    application.add_handler(CommandHandler('editarimagen', editar_imagen))
+    application.add_handler(CommandHandler('subirimagen', subir_imagen))
     application.add_handler(CommandHandler('testMensaje', test_mensaje))
     application.add_handler(CommandHandler('help', help_command))
     application.add_handler(CommandHandler('deletecanal', delete_canal))
