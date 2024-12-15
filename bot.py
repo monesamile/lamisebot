@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
+from telegram.ext import Application, CommandHandler, MessageHandler, CallbackContext, filters
 import os
 
 # Configuración básica
@@ -17,6 +17,28 @@ canales = []
 # Función para verificar si un usuario tiene permiso
 def tiene_permiso(update: Update):
     return update.message.from_user.id in ALLOWED_IDS
+
+# Función para manejar la eliminación de mensajes
+async def mensaje_borrado(update: Update, context: CallbackContext):
+    if update.message is None:  # Verificamos que el mensaje realmente haya sido borrado
+        if update.deleted_message:
+            # Información sobre el mensaje eliminado
+            canal = update.message.chat
+            eliminado_por = update.message.from_user.username if update.message.from_user else "Desconocido"
+            propietario = canal.username if canal.username else "Desconocido"
+
+            # Notificación a las IDs verificadas
+            for user_id in ALLOWED_IDS:
+                try:
+                    await context.bot.send_message(
+                        chat_id=user_id,
+                        text=f"El mensaje ha sido borrado en el canal @{canal.username if canal.username else canal.title}.\n"
+                             f"Eliminado por: {eliminado_por}\n"
+                             f"Propietario del canal: {propietario}\n"
+                             f"Canal ID: {canal.id}"
+                    )
+                except Exception as e:
+                    print(f"Error enviando mensaje a {user_id}: {e}")
 
 # Comando /start - Muestra los comandos disponibles
 async def start(update: Update, context: CallbackContext):
@@ -166,6 +188,9 @@ def main():
     application.add_handler(CommandHandler('testMensaje', test_mensaje))
     application.add_handler(CommandHandler('deletecanal', delete_canal))
 
+    # Añadir manejador para los mensajes borrados
+    application.add_handler(MessageHandler(filters.Deleted, mensaje_borrado))
+
     # Añadir manejadores para recibir texto e imágenes
     application.add_handler(MessageHandler(filters.PHOTO, manejar_imagen))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, manejar_texto))
@@ -175,5 +200,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 
