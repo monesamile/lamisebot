@@ -173,13 +173,20 @@ async def verificar_mensaje(context: CallbackContext):
                 # Si el mensaje fue eliminado, se captura la excepción
                 print(f"Mensaje con ID {mensaje['message_id']} ha sido eliminado.")
                 
-                # Notificar a las IDs verificadas
-                for id_verificada in ALLOWED_IDS:
-                    mensaje_alerta = f"¡Alerta! El mensaje con ID {mensaje['message_id']} ha sido eliminado en el canal @{mensaje['chat_id']}."
-                    try:
-                        await context.bot.send_message(chat_id=id_verificada, text=mensaje_alerta)
-                    except Exception as alert_error:
-                        print(f"No se pudo enviar la alerta a la ID {id_verificada}: {alert_error}")
+                # Obtener detalles del canal para conseguir el nombre de usuario
+                try:
+                    chat = await context.bot.get_chat(mensaje['chat_id'])
+                    canal_username = chat.username  # Obtener el @username del canal
+
+                    # Notificar a las IDs verificadas
+                    for id_verificada in ALLOWED_IDS:
+                        mensaje_alerta = f"¡Alerta! El mensaje con ID {mensaje['message_id']} ha sido eliminado en el canal @{canal_username}."
+                        try:
+                            await context.bot.send_message(chat_id=id_verificada, text=mensaje_alerta)
+                        except Exception as alert_error:
+                            print(f"No se pudo enviar la alerta a la ID {id_verificada}: {alert_error}")
+                except Exception as chat_error:
+                    print(f"No se pudo obtener el nombre de usuario del canal con ID {mensaje['chat_id']}: {chat_error}")
                 
                 # Eliminar el mensaje de la lista
                 mensajes_enviados.remove(mensaje)
@@ -197,11 +204,11 @@ def main():
     application.add_handler(CommandHandler('testMensaje', test_mensaje))
     application.add_handler(CommandHandler('borrarmensaje', borrar_mensaje))
 
+    # Añadir el manejador de imágenes
     application.add_handler(MessageHandler(filters.PHOTO, manejar_imagen))
-    application.add_handler(MessageHandler(filters.TEXT, manejar_texto))
 
-    # Iniciar la verificación periódica
-    application.job_queue.run_repeating(verificar_mensaje, interval=60, first=60)
+    # Añadir el manejador de texto
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, manejar_texto))
 
     # Arrancar el bot con polling
     application.run_polling()
