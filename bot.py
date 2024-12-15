@@ -190,6 +190,8 @@ async def verificar_mensaje(context: CallbackContext):
                 
                 # Eliminar el mensaje de la lista
                 mensajes_enviados.remove(mensaje)
+                break  # Salir del bucle porque ya se procesó la eliminación del mensaje
+
 
 # Función principal que arranca el bot
 def main():
