@@ -11,7 +11,7 @@ IMAGE_DIR = "images"
 if not os.path.exists(IMAGE_DIR):
     os.makedirs(IMAGE_DIR)
 
-# Lista de canales con su propietario
+# Lista de canales donde se enviarán los mensajes
 canales = []
 
 # Función para verificar si un usuario tiene permiso
@@ -27,8 +27,8 @@ async def start(update: Update, context: CallbackContext):
             "/addcanal - Añadir un canal\n"
             "/listacanales - Ver canales añadidos\n"
             "/subirimagen - Subir una imagen\n"
-            "/testMensaje - Enviar un mensaje a los canales\n"
-            "/modificarMensaje - Modificar el texto de los mensajes"
+            "/modificarMensaje - Modificar el texto del mensaje\n"
+            "/testMensaje - Enviar un mensaje a los canales"
         )
     else:
         await update.message.reply_text("No tienes permisos para usar este bot.")
@@ -38,9 +38,8 @@ async def add_canal(update: Update, context: CallbackContext):
     if tiene_permiso(update):
         if context.args:
             canal_id = context.args[0]
-            propietario = update.message.from_user.username  # Obtener el nombre de usuario
-            canales.append({'canal_id': canal_id, 'propietario': propietario})
-            await update.message.reply_text(f"Canal {canal_id} añadido correctamente con propietario @{propietario}.")
+            canales.append(canal_id)
+            await update.message.reply_text(f"Canal {canal_id} añadido correctamente.")
         else:
             await update.message.reply_text("Por favor, proporciona un ID de canal. Ejemplo: /addcanal @miCanal")
     else:
@@ -50,42 +49,25 @@ async def add_canal(update: Update, context: CallbackContext):
 async def listar_canales(update: Update, context: CallbackContext):
     if tiene_permiso(update):
         if canales:
-            canales_str = ""
-            for canal in canales:
-                canales_str += f"{canal['canal_id']} (Propietario: @{canal['propietario']})\n"
+            canales_str = "\n".join([f"@{canal}" for canal in canales])
             await update.message.reply_text(f"Canales añadidos:\n{canales_str}")
         else:
             await update.message.reply_text("No hay canales añadidos.")
     else:
         await update.message.reply_text("No tienes permisos para usar este comando.")
 
-# Comando /modificarMensaje - Modificar el texto del mensaje
-async def modificar_mensaje(update: Update, context: CallbackContext):
-    if tiene_permiso(update):
-        if context.args:
-            # Modificar el texto del mensaje (captura el texto de los argumentos)
-            texto_nuevo = " ".join(context.args)
-            context.user_data['texto_mensaje'] = texto_nuevo  # Guardar el nuevo texto en los datos del usuario
-            await update.message.reply_text(f"Texto del mensaje modificado: {texto_nuevo}")
-        else:
-            await update.message.reply_text("Por favor, proporciona el nuevo texto para el mensaje. Ejemplo: /modificarMensaje ¡Nuevo mensaje!")
-    else:
-        await update.message.reply_text("No tienes permisos para usar este comando.")
-
-# Comando /subirimagen - Iniciar la subida de una imagen
+# Comando /subirimagen - Subir una imagen
 async def subir_imagen(update: Update, context: CallbackContext):
     if tiene_permiso(update):
-        # Inicia el proceso pidiendo la imagen
         await update.message.reply_text("Por favor, sube una imagen para el anuncio.")
-        context.user_data['esperando_imagen'] = True  # Indicamos que estamos esperando una imagen
+        context.user_data['esperando_imagen'] = True
     else:
-        await update.message.reply_text("No tienes permisos para usar este comando.")  # Mensaje si no tienes permisos
+        await update.message.reply_text("No tienes permisos para usar este comando.")
 
 # Este manejador se ejecutará cuando el usuario envíe una imagen
 async def manejar_imagen(update: Update, context: CallbackContext):
     if 'esperando_imagen' in context.user_data and context.user_data['esperando_imagen']:
         if update.message.photo:  # Si el mensaje contiene una imagen
-            print("Imagen recibida, procesando...")  # Depuración
             photo = update.message.photo[-1]  # Obtener la imagen más grande (última en la lista)
             file = await photo.get_file()  # Obtener el archivo
             file_path = os.path.join(IMAGE_DIR, f"imagen_{update.message.message_id}.jpg")  # Ruta donde guardamos la imagen
@@ -95,43 +77,64 @@ async def manejar_imagen(update: Update, context: CallbackContext):
             context.user_data['imagen_guardada'] = file_path
 
             # Confirmación al usuario
-            await update.message.reply_text("¡Ok! Tu imagen para el anuncio es:")
-
+            await update.message.reply_text(
+                f"¡Ok! Tu imagen para el anuncio es:\n"
+                f"[Vista previa de la imagen]({file_path})", 
+                parse_mode='Markdown'
+            )
             # Mostrar la imagen en el chat
             with open(file_path, 'rb') as image_file:
-                await update.message.reply_photo(image_file)
-
+                await update.message.reply_photo(image_file, caption="Aquí está la imagen que elegiste para el anuncio.")
+            
             # Desactivar la espera de la imagen
             context.user_data['esperando_imagen'] = False
         else:
-            # Si el mensaje no contiene una imagen, pedirle que suba una
             await update.message.reply_text("Por favor, sube una imagen válida.")
     else:
-        # Si no estamos esperando una imagen, ignora el mensaje
         await update.message.reply_text("No estoy esperando una imagen en este momento.")
+
+# Comando /modificarMensaje - Modificar el texto del mensaje
+async def modificar_mensaje(update: Update, context: CallbackContext):
+    if tiene_permiso(update):
+        # Pedir al usuario que envíe el texto que quiere usar
+        await update.message.reply_text("Por favor, escribe el nuevo texto para el mensaje.")
+        
+        # Guardamos el estado para indicar que estamos esperando un texto
+        context.user_data['esperando_texto'] = True
+    else:
+        await update.message.reply_text("No tienes permisos para usar este comando.")
+
+# Este manejador se ejecutará cuando el usuario envíe un texto
+async def manejar_texto(update: Update, context: CallbackContext):
+    if 'esperando_texto' in context.user_data and context.user_data['esperando_texto']:
+        # Guardar el texto que el usuario envíe
+        nuevo_texto = update.message.text
+        context.user_data['texto_mensaje'] = nuevo_texto  # Guardamos el nuevo texto en los datos del usuario
+
+        # Confirmación al usuario de que el texto fue guardado
+        await update.message.reply_text(f"¡El texto se ha guardado correctamente!\nTexto: {nuevo_texto}")
+
+        # Desactivamos la espera de texto
+        context.user_data['esperando_texto'] = False
+    else:
+        # Si no estamos esperando texto, ignoramos el mensaje
+        await update.message.reply_text("No estoy esperando un texto en este momento.")
 
 # Comando /testMensaje - Enviar mensaje e imagen a los canales
 async def test_mensaje(update: Update, context: CallbackContext):
     if tiene_permiso(update):
-        if 'imagen_guardada' in context.user_data:
+        if 'imagen_guardada' in context.user_data and 'texto_mensaje' in context.user_data:
             image_path = context.user_data['imagen_guardada']
+            texto = context.user_data['texto_mensaje']
             with open(image_path, 'rb') as image_file:
-                for canal in canales:
+                for canal_id in canales:
                     try:
-                        texto = context.user_data.get('texto_mensaje', 'Mensaje predeterminado')  # Si no se modificó, usar mensaje predeterminado
-                        await context.bot.send_photo(chat_id=canal['canal_id'], photo=image_file, caption=texto)
+                        await context.bot.send_photo(chat_id=canal_id, photo=image_file, caption=texto)
                     except Exception as e:
-                        await update.message.reply_text(f"No se pudo enviar el mensaje al canal {canal['canal_id']}: {e}")
+                        await update.message.reply_text(f"No se pudo enviar el mensaje al canal {canal_id}: {e}")
                 await update.message.reply_text("Mensaje e imagen enviados a los canales.")
         else:
-            await update.message.reply_text("No se ha guardado ninguna imagen. Usa /subirimagen.")
-    else:
-        await update.message.reply_text("No tienes permisos para usar este comando.")
-
-# Función para manejar el comando /help (mostrar ayuda)
-async def help_command(update: Update, context: CallbackContext):
-    if tiene_permiso(update):
-        await update.message.reply_text("¡Aquí tienes la ayuda! Usa los comandos que te he mostrado anteriormente.")
+            await update.message.reply_text("No se ha guardado ninguna imagen o texto. Usa /subirimagen y /modificarMensaje.")
     else:
         await update.message.reply_text("No tienes permisos para usar este comando.")
 
@@ -140,13 +143,8 @@ async def delete_canal(update: Update, context: CallbackContext):
     if tiene_permiso(update):
         if context.args:
             canal_id = context.args[0]
-            canal_eliminado = None
-            for canal in canales:
-                if canal['canal_id'] == canal_id:
-                    canal_eliminado = canal
-                    break
-            if canal_eliminado:
-                canales.remove(canal_eliminado)
+            if canal_id in canales:
+                canales.remove(canal_id)
                 await update.message.reply_text(f"Canal {canal_id} eliminado.")
             else:
                 await update.message.reply_text(f"Canal {canal_id} no encontrado.")
@@ -163,19 +161,18 @@ def main():
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('addcanal', add_canal))
     application.add_handler(CommandHandler('listacanales', listar_canales))
-    application.add_handler(CommandHandler('modificarMensaje', modificar_mensaje))
     application.add_handler(CommandHandler('subirimagen', subir_imagen))
+    application.add_handler(CommandHandler('modificarMensaje', modificar_mensaje))
     application.add_handler(CommandHandler('testMensaje', test_mensaje))
-    application.add_handler(CommandHandler('help', help_command))
     application.add_handler(CommandHandler('deletecanal', delete_canal))
 
-    # Añadir el handler para manejar imágenes
+    # Añadir manejadores para recibir texto e imágenes
     application.add_handler(MessageHandler(filters.PHOTO, manejar_imagen))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, manejar_texto))
 
     # Arrancar el bot con polling
     application.run_polling()
 
 if __name__ == '__main__':
     main()
-
 
