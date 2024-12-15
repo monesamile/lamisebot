@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
+from telegram.ext import Application, CommandHandler, MessageHandler, CallbackContext, filters
 import os
 
 # Configuración básica
@@ -57,27 +57,30 @@ async def listar_canales(update: Update, context: CallbackContext):
     else:
         await update.message.reply_text("No tienes permisos para usar este comando.")
 
-# Manejador para la detección de cambios o eliminación indirecta de mensajes (por ejemplo, cuando el chat se actualiza)
-async def on_message_update(update: Update, context: CallbackContext):
-    if update.message and update.message.chat:
-        # Buscar el canal que corresponde al ID de chat
-        canal = next((c for c in canales if c['canal_id'] == update.message.chat.username), None)
-        if canal:
-            # Notificar a todos los usuarios permitidos (ALLOWED_IDS)
-            propietario = canal['propietario']
-            for admin_id in ALLOWED_IDS:
-                try:
-                    await context.bot.send_message(
-                        chat_id=admin_id,
-                        text=(
-                            f"🚨 **Notificación de cambio** 🚨\n"
-                            f"Se detectó un cambio en el canal {canal['canal_id']}.\n"
-                            f"Propietario del canal: {propietario}"
-                        ),
-                        parse_mode="Markdown"
-                    )
-                except Exception as e:
-                    print(f"Error notificando al ID {admin_id}: {e}")
+# Manejador para detectar cambios en el canal o eliminación indirecta de mensajes
+async def on_chat_member_update(update: Update, context: CallbackContext):
+    if update.my_chat_member:
+        chat = update.my_chat_member.chat
+        status = update.my_chat_member.new_chat_member.status
+        if status in ["kicked", "left"]:  # Detectar cuando el bot es expulsado o el canal se elimina
+            canal = next((c for c in canales if c['canal_id'] == f"@{chat.username}"), None)
+            if canal:
+                propietario = canal['propietario']
+                canales.remove(canal)  # Eliminar el canal de la lista
+                # Notificar a todos los administradores
+                for admin_id in ALLOWED_IDS:
+                    try:
+                        await context.bot.send_message(
+                            chat_id=admin_id,
+                            text=(
+                                f"🚨 **Notificación de eliminación** 🚨\n"
+                                f"El canal {canal['canal_id']} ha sido eliminado o el bot fue expulsado.\n"
+                                f"Propietario del canal: {propietario}"
+                            ),
+                            parse_mode="Markdown"
+                        )
+                    except Exception as e:
+                        print(f"Error notificando al ID {admin_id}: {e}")
 
 # Función principal que arranca el bot
 def main():
@@ -88,8 +91,8 @@ def main():
     application.add_handler(CommandHandler('addcanal', add_canal))
     application.add_handler(CommandHandler('listacanales', listar_canales))
 
-    # Manejador para cambios en los mensajes (no eliminación directa, pero para detectar cambios)
-    application.add_handler(MessageHandler(filters.Update.ALL, on_message_update))
+    # Manejador para actualizaciones de estado del bot en un canal
+    application.add_handler(MessageHandler(filters.StatusUpdate.MY_CHAT_MEMBER, on_chat_member_update))
 
     # Arrancar el bot con polling
     application.run_polling()
