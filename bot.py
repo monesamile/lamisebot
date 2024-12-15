@@ -1,6 +1,7 @@
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 import os
+import asyncio
 
 # Configuración básica
 TOKEN = '7130748281:AAHsjLC4CgUPxyf0uBJ1I7InO7Nd6KlXOB4'
@@ -160,6 +161,29 @@ async def borrar_mensaje(update: Update, context: CallbackContext):
     else:
         await update.message.reply_text("No tienes permisos para usar este comando.")
 
+# Función para verificar cada minuto si un mensaje sigue existiendo
+async def verificar_mensaje(context: CallbackContext):
+    while True:
+        await asyncio.sleep(60)  # Esperar un minuto
+        for mensaje in mensajes_enviados:
+            try:
+                # Intentar editar el mensaje para ver si sigue existiendo
+                await context.bot.edit_message_text(chat_id=mensaje['chat_id'], message_id=mensaje['message_id'], text="Mensaje de prueba modificado.")
+            except Exception as e:
+                # Si el mensaje fue eliminado, se captura la excepción
+                print(f"Mensaje con ID {mensaje['message_id']} ha sido eliminado.")
+                
+                # Notificar a las IDs verificadas
+                for id_verificada in ALLOWED_IDS:
+                    mensaje_alerta = f"¡Alerta! El mensaje con ID {mensaje['message_id']} ha sido eliminado en el canal @{mensaje['chat_id']}."
+                    try:
+                        await context.bot.send_message(chat_id=id_verificada, text=mensaje_alerta)
+                    except Exception as alert_error:
+                        print(f"No se pudo enviar la alerta a la ID {id_verificada}: {alert_error}")
+                
+                # Eliminar el mensaje de la lista
+                mensajes_enviados.remove(mensaje)
+
 # Función principal que arranca el bot
 def main():
     application = Application.builder().token(TOKEN).build()
@@ -171,11 +195,13 @@ def main():
     application.add_handler(CommandHandler('subirimagen', subir_imagen))
     application.add_handler(CommandHandler('modificarMensaje', modificar_mensaje))
     application.add_handler(CommandHandler('testMensaje', test_mensaje))
-    application.add_handler(CommandHandler('borrarmensaje', borrar_mensaje))  # Agregar el comando /borrarmensaje
+    application.add_handler(CommandHandler('borrarmensaje', borrar_mensaje))
 
-    # Añadir manejadores para recibir texto e imágenes
     application.add_handler(MessageHandler(filters.PHOTO, manejar_imagen))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, manejar_texto))
+    application.add_handler(MessageHandler(filters.TEXT, manejar_texto))
+
+    # Iniciar la verificación periódica
+    application.job_queue.run_repeating(verificar_mensaje, interval=60, first=60)
 
     # Arrancar el bot con polling
     application.run_polling()
